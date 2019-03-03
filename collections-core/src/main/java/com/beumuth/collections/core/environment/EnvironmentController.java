@@ -45,7 +45,7 @@ public class EnvironmentController {
     }
 
     @PostMapping(path="/environment")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @ResponseStatus(HttpStatus.CREATED)
     public void addEnvironment(@RequestBody EnvironmentConfiguration environment) throws ClientErrorException {
         ValidationResult validationResult = environmentConfigurationValidator.validate(environment);
         if(validationResult instanceof InvalidResult) {

@@ -4,6 +4,7 @@ import com.beumuth.collections.client.application.ApplicationMode;
 import com.beumuth.collections.client.database.DatabaseConfiguration;
 import com.beumuth.collections.core.application.ApplicationService;
 import com.beumuth.collections.core.environment.EnvironmentService;
+import com.mysql.cj.jdbc.Driver;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -14,42 +15,52 @@ import javax.sql.DataSource;
 
 @Service
 public class DatabaseService {
-
     @Autowired
     private ApplicationService applicationService;
+
     @Autowired
     private EnvironmentService environmentService;
 
-    private JdbcTemplate jdbcTemplate;
-    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+    @Autowired
+    private CollectionsDataSource collectionsDataSource;
 
     public JdbcTemplate getJdbcTemplate() {
-        return new JdbcTemplate(createDataSource());
+        return new JdbcTemplate(collectionsDataSource);
     }
 
     public NamedParameterJdbcTemplate getNamedParameterJdbcTemplate() {
-        return new NamedParameterJdbcTemplate(createDataSource());
+        return new NamedParameterJdbcTemplate(collectionsDataSource);
     }
 
-    private DataSource createDataSource() {
-        DatabaseConfiguration databaseConfiguration = environmentService.getActiveEnvironment().databaseConfiguration;
-        ApplicationMode applicationMode = applicationService.getApplicationMode();
+    /**
+     * Get a JdbcTemplate that isn't connected to a particular database
+     * @return
+     */
+    public JdbcTemplate getSchemalessJdbcTemplate() {
+        return new JdbcTemplate(getSchemalessDataSource());
+    }
 
+    /**
+     * Get a JdbcTemplate that isn't connected to a particular database
+     * @return
+     */
+    public NamedParameterJdbcTemplate getSchemalessNamedParameterJdbcTemplate() {
+        return new NamedParameterJdbcTemplate(getSchemalessDataSource());
+    }
+
+    private DataSource getSchemalessDataSource() {
+        DatabaseConfiguration databaseConfiguration = environmentService.getActiveEnvironment().databaseConfiguration;
         BasicDataSource dataSource = new BasicDataSource();
-        dataSource.setDriverClassName("com.mysql.jdbc.Driver");
-        dataSource.setUrl(
-            "jdbc:mysql://" + databaseConfiguration.host + ":" + databaseConfiguration.port + "/" +
-                databaseConfigurationAndApplicationModeToDatabaseName(applicationMode, databaseConfiguration)
-        );
+        dataSource.setDriverClassName(Driver.class.getCanonicalName());
+        dataSource.setUrl("jdbc:mysql://" + databaseConfiguration.host + ":" + databaseConfiguration.port + "?sslMode=DISABLED");
         dataSource.setUsername(databaseConfiguration.username);
         dataSource.setPassword(databaseConfiguration.password);
-
         return dataSource;
     }
 
-    private String databaseConfigurationAndApplicationModeToDatabaseName(
-        ApplicationMode mode,
-        DatabaseConfiguration configuration
+    public String databaseConfigurationAndApplicationModeToDatabaseName(
+        DatabaseConfiguration configuration,
+        ApplicationMode mode
     ) {
         switch(mode) {
             case LIVE:
@@ -58,5 +69,12 @@ public class DatabaseService {
                 return configuration.integrationTestDatabase;
         }
         throw new RuntimeException("Current ApplicationMode [" + mode + "] not handled");
+    }
+
+    public String getCurrentDatabaseName() {
+        return databaseConfigurationAndApplicationModeToDatabaseName(
+            environmentService.getActiveEnvironment().databaseConfiguration,
+            applicationService.getApplicationMode()
+        );
     }
 }
