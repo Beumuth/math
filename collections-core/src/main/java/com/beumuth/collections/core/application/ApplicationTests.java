@@ -38,7 +38,7 @@ public class ApplicationTests {
     @Before
     public void setupTests() {
         if(! initialized) {
-            client = clientService.getApplicationClient();
+            client = clientService.getClient(ApplicationClient.class);
             startingConfiguration = applicationService.getApplicationConfiguration();
 
             //Set total tests - credit https://stackoverflow.com/a/48981027/3816779

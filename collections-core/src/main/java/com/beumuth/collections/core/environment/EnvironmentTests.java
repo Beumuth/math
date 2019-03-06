@@ -39,7 +39,7 @@ public class EnvironmentTests {
     @Before
     public void setupTests() {
         if(! initialized) {
-            client = clientService.getEnvironmentClient();
+            client = clientService.getClient(EnvironmentClient.class);
             startingConfiguration = applicationService.getApplicationConfiguration();
 
             //Set total tests - credit https://stackoverflow.com/a/48981027/3816779

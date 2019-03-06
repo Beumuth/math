@@ -24,6 +24,10 @@ public class DatabaseService {
     @Autowired
     private CollectionsDataSource collectionsDataSource;
 
+    public CollectionsDataSource getCollectionsDataSource() {
+        return collectionsDataSource;
+    }
+
     public JdbcTemplate getJdbcTemplate() {
         return new JdbcTemplate(collectionsDataSource);
     }
