@@ -61,16 +61,6 @@ public class ElementService {
     }
 
     public long createElement() {
-        databaseService
-            .getJdbcTemplate()
-            .update(
-                "INSERT INTO Element (id) VALUES(null)",
-                generatedKeyHolder
-            );
-        return generatedKeyHolder.getKey().longValue();
-    }
-
-    public List<Long> createMultipleElements(int number) {
         try {
             PreparedStatement preparedStatement = databaseService
                 .getCollectionsDataSource()
@@ -79,9 +69,29 @@ public class ElementService {
             preparedStatement.executeUpdate();
 
             ResultSet generatedKeysResultSet = preparedStatement.getGeneratedKeys();
+            generatedKeysResultSet.next();
+            return generatedKeysResultSet.getLong(1);
+        } catch(SQLException e) {
+            throw new RuntimeException("Could not create element", e);
+        }
+    }
+
+    public List<Long> createMultipleElements(int number) {
+        try {
+            PreparedStatement preparedStatement = databaseService
+                .getCollectionsDataSource()
+                .getConnection()
+                .prepareStatement("INSERT INTO Element () VALUES (null)", Statement.RETURN_GENERATED_KEYS);
+
+            for(var i = 0; i < number; ++i) {
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+
+            ResultSet generatedKeysResultSet = preparedStatement.getGeneratedKeys();
             List<Long> generatedKeys = Lists.newArrayList();
             while(generatedKeysResultSet.next()) {
-                generatedKeys.add(generatedKeysResultSet.getLong("id"));
+                generatedKeys.add(generatedKeysResultSet.getLong(1));
             }
             return generatedKeys;
         } catch(SQLException e) {
