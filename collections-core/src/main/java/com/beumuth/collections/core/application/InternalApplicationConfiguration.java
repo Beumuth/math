@@ -1,5 +1,6 @@
 package com.beumuth.collections.core.application;
 
+import com.beumuth.collections.core.database.CollectionsDataSource;
 import com.beumuth.collections.core.test.ResultJsonSerializer;
 import com.fatboyindustrial.gsonjodatime.Converters;
 import com.github.instantpudd.validator.ClientErrorExceptionHandler;
@@ -12,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
@@ -21,6 +24,9 @@ public class InternalApplicationConfiguration {
 
     @Autowired
     private ResultJsonSerializer resultJsonSerializer;
+
+    @Autowired
+    private CollectionsDataSource collectionsDataSource;
 
     @Primary
     @Bean(name="prettyPrint")
@@ -48,12 +54,12 @@ public class InternalApplicationConfiguration {
     }
 
     @Bean
-    ClientErrorExceptionHandler clientErrorExceptionHandler() {
+    public ClientErrorExceptionHandler clientErrorExceptionHandler() {
         return new ClientErrorExceptionHandler();
     }
 
     @Bean
-    GeneratedKeyHolder generatedKeyHolder() {
+    public GeneratedKeyHolder generatedKeyHolder() {
         return new GeneratedKeyHolder();
     }
 }

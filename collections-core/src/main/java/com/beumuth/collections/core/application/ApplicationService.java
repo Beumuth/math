@@ -2,9 +2,6 @@ package com.beumuth.collections.core.application;
 
 import com.beumuth.collections.client.application.ApplicationConfiguration;
 import com.beumuth.collections.client.application.ApplicationMode;
-import com.beumuth.collections.client.environment.EnvironmentConfiguration;
-import com.beumuth.collections.core.database.DatabaseService;
-import com.beumuth.collections.core.environment.EnvironmentService;
 import com.google.gson.Gson;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,12 +15,6 @@ import java.nio.charset.StandardCharsets;
 
 @Service
 public class ApplicationService {
-
-    @Autowired
-    private EnvironmentService environmentService;
-    @Autowired
-    private DatabaseService databaseService;
-
     @Value("${configurationLocation}")
     private String configurationLocation;
 

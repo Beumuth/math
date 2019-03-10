@@ -11,6 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
 @Service
@@ -24,16 +25,21 @@ public class DatabaseService {
     @Autowired
     private CollectionsDataSource collectionsDataSource;
 
-    public CollectionsDataSource getCollectionsDataSource() {
-        return collectionsDataSource;
+    private JdbcTemplate jdbcTemplate;
+    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
+    @PostConstruct
+    public void initialize() {
+        jdbcTemplate = new JdbcTemplate(collectionsDataSource);
+        namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(collectionsDataSource);
     }
 
     public JdbcTemplate getJdbcTemplate() {
-        return new JdbcTemplate(collectionsDataSource);
+        return jdbcTemplate;
     }
 
     public NamedParameterJdbcTemplate getNamedParameterJdbcTemplate() {
-        return new NamedParameterJdbcTemplate(collectionsDataSource);
+        return namedParameterJdbcTemplate;
     }
 
     /**

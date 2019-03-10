@@ -7,16 +7,19 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigInteger;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class ElementService {
@@ -61,42 +64,42 @@ public class ElementService {
     }
 
     public long createElement() {
-        try {
-            PreparedStatement preparedStatement = databaseService
-                .getCollectionsDataSource()
-                .getConnection()
-                .prepareStatement("INSERT INTO Element () VALUES (null)", Statement.RETURN_GENERATED_KEYS);
-            preparedStatement.executeUpdate();
+        databaseService
+            .getNamedParameterJdbcTemplate()
+            .update(
+                "INSERT INTO Element (id) VALUES (null)",
+                new MapSqlParameterSource(),
+                generatedKeyHolder
+            );
 
-            ResultSet generatedKeysResultSet = preparedStatement.getGeneratedKeys();
-            generatedKeysResultSet.next();
-            return generatedKeysResultSet.getLong(1);
-        } catch(SQLException e) {
-            throw new RuntimeException("Could not create element", e);
-        }
+        return generatedKeyHolder.getKey().longValue();
     }
 
     public List<Long> createMultipleElements(int number) {
-        try {
-            PreparedStatement preparedStatement = databaseService
-                .getCollectionsDataSource()
-                .getConnection()
-                .prepareStatement("INSERT INTO Element () VALUES (null)", Statement.RETURN_GENERATED_KEYS);
 
-            for(var i = 0; i < number; ++i) {
-                preparedStatement.addBatch();
-            }
-            preparedStatement.executeBatch();
+        String values = "(null),".repeat(number);
+        values = values.substring(0, values.length()-1);
 
-            ResultSet generatedKeysResultSet = preparedStatement.getGeneratedKeys();
-            List<Long> generatedKeys = Lists.newArrayList();
-            while(generatedKeysResultSet.next()) {
-                generatedKeys.add(generatedKeysResultSet.getLong(1));
-            }
-            return generatedKeys;
-        } catch(SQLException e) {
-            throw new RuntimeException("Could not create multiple elements", e);
+        databaseService
+            .getNamedParameterJdbcTemplate()
+            .update(
+                "INSERT INTO Element (id) VALUES " + values,
+                new MapSqlParameterSource(),
+                generatedKeyHolder
+            );
+
+        List<Map<String, Object>> keyList = generatedKeyHolder.getKeyList();
+        List<Long> ids = Lists.newArrayList();
+        for(var i = 0; i < keyList.size(); ++i) {
+            ids.add(
+                ((BigInteger)
+                    keyList
+                        .get(i)
+                        .get("GENERATED_KEY")
+                ).longValue()
+            );
         }
+        return ids;
     }
 
     public void deleteElement(long id) {

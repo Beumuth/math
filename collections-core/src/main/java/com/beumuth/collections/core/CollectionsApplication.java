@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.test.context.ContextConfiguration;
 
 @SpringBootApplication(
     exclude = {DataSourceAutoConfiguration.class}
@@ -20,7 +21,6 @@ public class CollectionsApplication {
 
     @Autowired
     private ApplicationConfigurationValidator applicationConfigurationValidator;
-
 
     @Value("${configurationLocation}")
     private String configurationLocation;
