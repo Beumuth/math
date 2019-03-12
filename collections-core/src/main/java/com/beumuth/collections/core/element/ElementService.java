@@ -25,9 +25,6 @@ public class ElementService {
     @Autowired
     private DatabaseService databaseService;
 
-    @Autowired
-    private GeneratedKeyHolder generatedKeyHolder;
-
     public boolean doesElementExist(long id) {
         try {
             return databaseService
@@ -60,18 +57,21 @@ public class ElementService {
     }
 
     public long createElement() {
+        GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
         databaseService
             .getNamedParameterJdbcTemplate()
             .update(
                 "INSERT INTO Element (id) VALUES (null)",
                 new MapSqlParameterSource(),
-                generatedKeyHolder
+                keyHolder
             );
 
-        return generatedKeyHolder.getKey().longValue();
+        return keyHolder.getKey().longValue();
     }
 
     public List<Long> createMultipleElements(int number) {
+
+        GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
 
         String values = "(null),".repeat(number);
         values = values.substring(0, values.length()-1);
@@ -81,10 +81,10 @@ public class ElementService {
             .update(
                 "INSERT INTO Element (id) VALUES " + values,
                 new MapSqlParameterSource(),
-                generatedKeyHolder
+                keyHolder
             );
 
-        List<Map<String, Object>> keyList = generatedKeyHolder.getKeyList();
+        List<Map<String, Object>> keyList = keyHolder.getKeyList();
         List<Long> ids = Lists.newArrayList();
         for(var i = 0; i < keyList.size(); ++i) {
             ids.add(

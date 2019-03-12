@@ -1,4 +1,4 @@
-package com.beumuth.collections.client.setelement;
+package com.beumuth.collections.core.setelement;
 
 import lombok.*;
 

@@ -57,9 +57,4 @@ public class InternalApplicationConfiguration {
     public ClientErrorExceptionHandler clientErrorExceptionHandler() {
         return new ClientErrorExceptionHandler();
     }
-
-    @Bean
-    public GeneratedKeyHolder generatedKeyHolder() {
-        return new GeneratedKeyHolder();
-    }
 }

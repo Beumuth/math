@@ -46,9 +46,6 @@ public class DatabaseVersionService {
     private DatabaseService databaseService;
 
     @Autowired
-    private GeneratedKeyHolder generatedKeyHolder;
-
-    @Autowired
     private ApplicationContext applicationContext;
 
     public List<DatabaseVersion> getAllDatabaseVersions() {
@@ -281,6 +278,9 @@ public class DatabaseVersionService {
      * @return The id of the newly created DatabaseVersion
      */
     public long createNewDatabaseVersion(CreateDatabaseVersionRequest request) {
+
+        GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
+
         databaseService
             .getNamedParameterJdbcTemplate()
             .update(
@@ -306,9 +306,9 @@ public class DatabaseVersionService {
                         .put("description", request.description)
                         .build()
                 ),
-                generatedKeyHolder
+                keyHolder
             );
-        return generatedKeyHolder.getKey().longValue();
+        return keyHolder.getKey().longValue();
     }
 
     public ValidationResult testVersionScript(int majorVersion, int minorVersion, int patchVersion) {
