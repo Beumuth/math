@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS `Sset` (
 	INDEX `fk_set_element_idx` (`idElement` ASC),
 	CONSTRAINT `fk_set_element`
 		FOREIGN KEY (`idElement`)
-		REFERENCES `collections`.`Element` (`id`)
+		REFERENCES `Element` (`id`)
 		ON DELETE NO ACTION
 		ON UPDATE NO ACTION)
 ENGINE = InnoDB
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS `SetElement` (
 		ON UPDATE NO ACTION,
 	CONSTRAINT `fk_setElement_element`
 		FOREIGN KEY (`idElement`)
-		REFERENCES `collections`.`Element` (`id`)
+		REFERENCES `Element` (`id`)
 		ON DELETE CASCADE
 		ON UPDATE NO ACTION)
 ENGINE = InnoDB

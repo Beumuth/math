@@ -5,6 +5,7 @@ import com.beumuth.collections.core.database.CollectionsBeanPropertyRowMapper;
 import com.beumuth.collections.core.database.DatabaseService;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -38,6 +39,23 @@ public class ElementService {
         } catch(EmptyResultDataAccessException e) {
             return false;
         }
+    }
+
+    public Set<Long> getElementsThatDoNotExist(Set<Long> idElements) {
+        return Sets.difference(
+            idElements,
+            Sets.newHashSet(
+                databaseService
+                    .getNamedParameterJdbcTemplate()
+                    .queryForList(
+                    "SELECT id FROM Element WHERE id IN (:idElements)",
+                        ImmutableMap.of(
+                        "idElements", idElements
+                        ),
+                        Long.class
+                    )
+            )
+        );
     }
 
     public Optional<Element> getElement(long id) {
