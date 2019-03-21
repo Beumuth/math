@@ -27,7 +27,6 @@ public class CollectionsDataSource extends BasicDataSource {
 
     @Override
     public Connection getConnection() throws SQLException {
-
         ApplicationMode applicationMode = applicationService.getApplicationMode();
         DatabaseConfiguration databaseConfiguration = environmentService.getActiveEnvironment().databaseConfiguration;
 

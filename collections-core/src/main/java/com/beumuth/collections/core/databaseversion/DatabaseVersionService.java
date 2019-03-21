@@ -24,6 +24,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
@@ -207,7 +208,10 @@ public class DatabaseVersionService {
                     "datetimeCreated, " +
                     "description " +
                 "FROM DatabaseVersion " +
-                "ORDER BY dateTimeCreated DESC " +
+                "ORDER BY " +
+                    "majorVersion DESC, " +
+                    "minorVersion DESC, " +
+                    "patchVersion DESC " +
                 "LIMIT 1",
                 ROW_MAPPER
             );
@@ -311,9 +315,32 @@ public class DatabaseVersionService {
         return keyHolder.getKey().longValue();
     }
 
-    public ValidationResult testVersionScript(int majorVersion, int minorVersion, int patchVersion) {
+    public void deleteVersion(int majorVersion, int minorVersion, int patchVersion) {
+        databaseService
+            .getNamedParameterJdbcTemplate()
+            .update(
+            "DELETE FROM DatabaseVersion " +
+                "WHERE " +
+                    "majorVersion=:majorVersion AND " +
+                    "minorVersion=:minorVersion AND " +
+                    "patchVersion=:patchVersion",
+                ImmutableMap.of(
+                    "majorVersion", majorVersion,
+                    "minorVersion", minorVersion,
+                    "patchVersion", patchVersion
+                )
+            );
+    }
+
+    public ValidationResult testVersionScript(CreateDatabaseVersionRequest request) {
+        //The convolutedness of this function indicates this design is flawed
+
         //Keep track of the current application mode
         ApplicationMode startingMode = applicationService.getApplicationMode();
+        DatabaseVersion startingVersion = getCurrentVersion();
+
+        //Create the database version temporarily so the attempt to upgrade to it can be made
+        createNewDatabaseVersion(request);
 
         try {
             //Go into test mode
@@ -323,17 +350,31 @@ public class DatabaseVersionService {
             cleanDatabase();
 
             //Upgrade to the version to test
-            upgradeToVersion(majorVersion, minorVersion, patchVersion);
+            upgradeToVersion(request.majorVersion, request.minorVersion, request.patchVersion);
 
             //It worked
             return new ValidResult();
         } catch(Exception e) {
             //Test failed
             return new InvalidResult(
-                "SQL script for version [" + majorVersion + "." + minorVersion + "." + patchVersion + "] " +
-                    "threw " + e.getClass().getName() + " with message " + e.getMessage()
+        "SQL script for version [" + request.majorVersion + "." + request.minorVersion + "." +
+                    request.patchVersion + "] threw " + e.getClass().getName() + " with message " + e.getMessage()
             );
         } finally {
+            cleanDatabase();
+
+            //Delete the version since it was only temporary
+            deleteVersion(request.majorVersion, request.minorVersion, request.patchVersion);
+
+            //Go back to the starting version (if it wasn't the initial version)
+            if(! getCurrentVersion().equals(startingVersion)) {
+                upgradeToVersion(
+                    startingVersion.getMajorVersion(),
+                    startingVersion.getMinorVersion(),
+                    startingVersion.getPatchVersion()
+                );
+            }
+
             //Switch back to the starting mode
             applicationService.setApplicationMode(startingMode);
         }
@@ -399,7 +440,6 @@ public class DatabaseVersionService {
     /**
      * @throws IllegalStateException if the application is in LIVE mode.
      */
-    @Transactional
     public void cleanDatabase() {
         //Don't let this happen in live mode. Too risky.
         if(applicationService.getApplicationMode().equals(ApplicationMode.LIVE)) {
@@ -493,11 +533,13 @@ public class DatabaseVersionService {
                 .update("USE `" + databaseService.getCurrentDatabaseName() + "`");
 
             //Run version script
+            Connection connection = databaseService.getJdbcTemplate().getDataSource().getConnection();
             ScriptUtils.executeSqlScript(
-                databaseService.getJdbcTemplate().getDataSource().getConnection(),
+                connection,
                 applicationContext.getResource("classpath:db/versions/" + majorVersion + "." + minorVersion + "." +
                     patchVersion + ".sql")
             );
+            connection.close();
 
             //Update DatabaseMetadata.currentVersion
             databaseService

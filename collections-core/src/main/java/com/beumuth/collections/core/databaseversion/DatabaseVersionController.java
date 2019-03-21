@@ -4,6 +4,8 @@ import com.beumuth.collections.client.application.ApplicationMode;
 import com.beumuth.collections.client.databaseversion.CreateDatabaseVersionRequest;
 import com.beumuth.collections.client.databaseversion.DatabaseVersion;
 import com.beumuth.collections.core.application.ApplicationService;
+import com.beumuth.collections.core.validation.InvalidResult;
+import com.beumuth.collections.core.validation.ValidationResult;
 import com.github.instantpudd.validator.ClientErrorException;
 import com.github.instantpudd.validator.ClientErrorStatusCode;
 import com.github.instantpudd.validator.Validator;
@@ -130,9 +132,16 @@ public class DatabaseVersionController {
             ).execute();
 
         //Test the sql script
-        databaseVersionService.testVersionScript(request.majorVersion, request.minorVersion, request.patchVersion);
+        ValidationResult scriptTestValidationResult = databaseVersionService.testVersionScript(request);
+        Validator
+            .returnStatus(ClientErrorStatusCode.STATUS_400)
+            .ifInstanceOf(scriptTestValidationResult, InvalidResult.class)
+            .withErrorMessage(
+                scriptTestValidationResult instanceof InvalidResult ?
+                    ((InvalidResult)scriptTestValidationResult).getReason() :
+                    ""
+            ).execute();
 
-        //Create version
         databaseVersionService.createNewDatabaseVersion(request);
     }
 

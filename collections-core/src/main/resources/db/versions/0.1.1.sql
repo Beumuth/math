@@ -11,4 +11,4 @@ ADD CONSTRAINT `fk_set_element`
 	REFERENCES `Element` (`id`)
 	ON DELETE CASCADE
 	ON UPDATE NO ACTION,
-ADD UNIQUE INDEX unique_set (id_element ASC);
+ADD UNIQUE INDEX unique_set (idElement ASC);
