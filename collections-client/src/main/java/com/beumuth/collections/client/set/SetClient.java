@@ -20,7 +20,7 @@ public interface SetClient extends CollectionsClient {
     @RequestLine("POST api/sets/set/withElements")
     long createSetWithElements(java.util.Set<Long> idElements);
 
-    @RequestLine("POST api/sets/set/{id}")
+    @RequestLine("POST api/sets/set/{id}/copy")
     long copySet(@Param("id") long id);
 
     @RequestLine("DELETE api/sets/set/{id}")
@@ -29,8 +29,8 @@ public interface SetClient extends CollectionsClient {
     @RequestLine("GET api/sets/set/{idSet}/containsElement/{idElement}")
     boolean doesSetContainElement(@Param("idSet") long idSet, @Param("idElement") long idElement);
 
-    @RequestLine("GET api/sets/set/{idSet}/containsElements")
-    boolean doesSetContainElements(@Param("idSet") long idSet, java.util.Set<Long> idElements);
+    @RequestLine("GET api/sets/set/{idSet}/containsElements/{idElements}")
+    boolean doesSetContainElements(@Param("idSet") long idSet, @Param("idElements") java.util.Set<Long> idElements);
 
     @RequestLine("PUT api/sets/set/{idSet}/element/{idElement}")
     void addElementToSet(@Param("idSet") long idSet, @Param("idElement") long idElement);
@@ -42,12 +42,12 @@ public interface SetClient extends CollectionsClient {
     void removeElementFromSet(@Param("idSet") long idSet, @Param("idElement") long idElement);
 
     @RequestLine("GET api/sets/set/{idSetA}/equals/{idSetB}")
-    boolean equals(@Param("idSetA") long idSetA, @Param("idSetB") long idSetB);
+    boolean areEqual(@Param("idSetA") long idSetA, @Param("idSetB") long idSetB);
 
     @RequestLine("GET api/sets/set/{idSetA}/isSubset/{idSetB}")
-    boolean isSubset(@Param("idSetA") long idSetA, @Param("idSetB") long idSetB);
+    boolean isSubset(@Param("idSetA") long idPossibleSubset, @Param("idSetB") long idPossibleSuperset);
 
-    @RequestLine("GET api/sets/set/{id}")
+    @RequestLine("GET api/sets/set/{id}/size")
     int setCardinality(@Param("id") long id);
 
     @RequestLine("GET api/sets/set/{id}/isEmpty")

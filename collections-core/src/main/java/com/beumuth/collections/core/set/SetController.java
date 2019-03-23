@@ -53,7 +53,7 @@ public class SetController {
     @ResponseBody
     @ResponseStatus(HttpStatus.CREATED)
     public long createSetWithElements(@RequestBody java.util.Set<Long> idElements) throws ClientErrorException {
-        validateIfElementsExist(idElements);
+        validateIfElementsExist(idElements, ClientErrorStatusCode.STATUS_400);
         return setService.createSetWithElements(idElements);
     }
 
@@ -79,17 +79,19 @@ public class SetController {
         @PathVariable(name="idElement") long idElement
     ) throws ClientErrorException {
         validateIfSetExists(idSet, "Set with given id [" + idSet + "] does not exist");
+        validateIfElementExists(idElement, "Element with given id [" + idElement + "] does not exist");
         return setService.containsElement(idSet, idElement);
     }
 
 
-    @GetMapping(path="/set/{idSet}/containsElements")
+    @GetMapping(path="/set/{idSet}/containsElements/{idElements}")
     @ResponseBody
     public boolean doesSetContainElements(
         @PathVariable(name="idSet") long idSet,
-        @RequestBody java.util.Set<Long> idElements
+        @PathVariable(name="idElements") java.util.Set<Long> idElements
     ) throws ClientErrorException {
         validateIfSetExists(idSet, "Set with given id [" + idSet + "] does not exist");
+        validateIfElementsExist(idElements, ClientErrorStatusCode.NOT_FOUND);
         return setService.containsAllElements(idSet, idElements);
     }
 
@@ -125,13 +127,13 @@ public class SetController {
 
     @GetMapping(path="/set/{idSetA}/equals/{idSetB}")
     @ResponseBody
-    public boolean equals(
+    public boolean areEqual(
         @PathVariable("idSetA") long idSetA,
         @PathVariable("idSetB") long idSetB
     ) throws ClientErrorException {
         validateIfSetExists(idSetA, "Set with given id [" + idSetA + "] does not exist");
         validateIfSetExists(idSetB, "Set with given id [" + idSetB + "] does not exist");
-        return setService.equals(idSetA, idSetB);
+        return setService.areEqual(idSetA, idSetB);
     }
 
     @GetMapping(path="/set/{idSetA}/isSubset/{idSetB}")
@@ -149,7 +151,7 @@ public class SetController {
     @ResponseBody
     public int setCardinality(@PathVariable("id") long id) throws ClientErrorException {
         validateIfSetExists(id, "Set with given id [" + id + "] does not exist");
-        return setService.size(id);
+        return setService.cardinality(id);
     }
 
     @GetMapping(path="/set/{id}/isEmpty")
@@ -245,10 +247,11 @@ public class SetController {
             .execute();
     }
 
-    private void validateIfElementsExist(java.util.Set<Long> idElements) throws ClientErrorException {
+    private void validateIfElementsExist(java.util.Set<Long> idElements, ClientErrorStatusCode statusCode)
+        throws ClientErrorException {
         java.util.Set<Long> idElementsThatDoNotExist = elementService.getElementsThatDoNotExist(idElements);
         Validator
-            .returnStatus(ClientErrorStatusCode.STATUS_400)
+            .returnStatus(statusCode)
             .ifFalse(idElementsThatDoNotExist.isEmpty())
             .withErrorMessage("The following elements do not exist: " + StringUtils.join(idElementsThatDoNotExist))
             .execute();

@@ -42,6 +42,10 @@ public class ElementService {
     }
 
     public Set<Long> getElementsThatDoNotExist(Set<Long> idElements) {
+        if(idElements.isEmpty()) {
+            return idElements;
+        }
+
         return Sets.difference(
             idElements,
             Sets.newHashSet(

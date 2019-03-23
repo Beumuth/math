@@ -94,7 +94,7 @@ public class SetTests {
     public void getSetElements_emptySet_shouldReturnNoElements() {
         long idSet = setService.createEmptySet();
         try {
-            Assert.assertEquals(Collections.EMPTY_SET, setClient.getSet(idSet));
+            Assert.assertEquals(Collections.EMPTY_SET, setClient.getSetElements(idSet));
         } finally {
             setService.deleteSet(idSet);
         }
@@ -183,7 +183,7 @@ public class SetTests {
         long idSet = setService.createSetWithElements(idElements);
         try {
             long idCopiedSet = setClient.copySet(idSet);
-            Assert.assertTrue(setService.equals(idSet, idCopiedSet));
+            Assert.assertTrue(setService.areEqual(idSet, idCopiedSet));
             Assert.assertNotEquals(idSet, idCopiedSet);
             setService.deleteSet(idCopiedSet);
         } finally {
@@ -197,7 +197,7 @@ public class SetTests {
         long idSet = setService.createEmptySet();
         try {
             long idCopiedSet = setClient.copySet(idSet);
-            Assert.assertTrue(setService.equals(idSet, idCopiedSet));
+            Assert.assertTrue(setService.areEqual(idSet, idCopiedSet));
             Assert.assertNotEquals(idSet, idCopiedSet);
             setService.deleteSet(idCopiedSet);
         } finally {
@@ -223,8 +223,8 @@ public class SetTests {
 
     @Test
     public void deleteSetTest_setSetElementAndElement_shouldBeDeleted() {
-        long idSet = setService.createSet();
         Set<Long> idElements = Sets.newHashSet(elementService.createMultipleElements(3));
+        long idSet = setService.createSetWithElements(idElements);
         try {
             com.beumuth.collections.client.set.Set set = setService.getSet(idSet).get();
             Set<Long> idSetElements = Sets.newHashSet();
@@ -267,11 +267,12 @@ public class SetTests {
     @Test
     public void doesSetContainElementTest_doesNotContainElement_shouldReturnFalse() {
         long idElement = elementService.createElement();
-        elementService.deleteElement(idElement);
         long idSet = setService.createSetWithElements(Sets.newHashSet(idElement));
+        setService.removeElementFromSet(idSet, idElement);
         try {
             Assert.assertFalse(setClient.doesSetContainElement(idSet, idElement));
         } finally {
+            elementService.deleteElement(idElement);
             setService.deleteSet(idSet);
         }
     }
@@ -309,7 +310,7 @@ public class SetTests {
             Assert.assertTrue(
                 "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Element [" +
                     idElement + "]",
-                e.contentUTF8().contains(idSet + "")
+                e.contentUTF8().contains(idElement + "")
             );
         } finally {
             setService.deleteSet(idSet);
@@ -363,7 +364,7 @@ public class SetTests {
     }
 
     @Test
-    public void doesSetContainElements_elementsDoNotExist_shouldReturn400() {
+    public void doesSetContainElements_elementsDoNotExist_shouldReturn404() {
         Set<Long> idElements = Sets.newHashSet(elementService.createMultipleElements(3));
         Set<Long> idNonExistingElements = Sets.newHashSet(elementService.createMultipleElements(2));
         elementService.deleteMultipleElements(idNonExistingElements);
@@ -372,7 +373,7 @@ public class SetTests {
         try {
             setClient.doesSetContainElements(idSet, idAllElements);
         } catch(FeignException e) {
-            Assert.assertEquals(400, e.status());
+            Assert.assertEquals(404, e.status());
             for(Long idElement : idNonExistingElements) {
                 Assert.assertTrue(
             "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Element [" +
@@ -534,7 +535,7 @@ public class SetTests {
         long idSetA = setService.createSetWithElements(idElements);
         long idSetB = setService.copySet(idSetA);
         try {
-            Assert.assertTrue(setClient.equals(idSetA, idSetB));
+            Assert.assertTrue(setClient.areEqual(idSetA, idSetB));
         } finally {
             setService.deleteSet(idSetA);
             setService.deleteSet(idSetB);
@@ -549,7 +550,7 @@ public class SetTests {
         long idSetA = setService.createSetWithElements(idElementsA);
         long idSetB = setService.createSetWithElements(idElementsB);
         try {
-            Assert.assertFalse(setClient.equals(idSetA, idSetB));
+            Assert.assertFalse(setClient.areEqual(idSetA, idSetB));
         } finally {
             setService.deleteSet(idSetA);
             setService.deleteSet(idSetB);
@@ -563,7 +564,7 @@ public class SetTests {
         Set<Long> idElements = Sets.newHashSet(elementService.createMultipleElements(3));
         long idSet = setService.createSetWithElements(idElements);
         try {
-            Assert.assertTrue(setClient.equals(idSet, idSet));
+            Assert.assertTrue(setClient.areEqual(idSet, idSet));
         } finally {
             setService.deleteSet(idSet);
             elementService.deleteMultipleElements(idElements);
@@ -575,7 +576,7 @@ public class SetTests {
         long idSetA = setService.createEmptySet();
         long idSetB = setService.createEmptySet();
         try {
-            Assert.assertTrue(setClient.equals(idSetA, idSetB));
+            Assert.assertTrue(setClient.areEqual(idSetA, idSetB));
         } finally {
             setService.deleteSet(idSetA);
             setService.deleteSet(idSetB);
@@ -588,7 +589,7 @@ public class SetTests {
         setService.deleteSet(idSetA);
         long idSetB = setService.createSet();
         try {
-            setClient.equals(idSetA, idSetB);
+            setClient.areEqual(idSetA, idSetB);
         } catch(FeignException e) {
             Assert.assertEquals(404, e.status());
             Assert.assertTrue(
@@ -606,7 +607,7 @@ public class SetTests {
         long idSetB = setService.createSet();
         setService.deleteSet(idSetB);
         try {
-            setClient.equals(idSetA, idSetB);
+            setClient.areEqual(idSetA, idSetB);
         } catch(FeignException e) {
             Assert.assertEquals(404, e.status());
             Assert.assertTrue(
@@ -808,6 +809,7 @@ public class SetTests {
     @Test
     public void isEmptySetTest_setDoesNotExist_shouldReturn404() {
         long idSet = setService.createSet();
+        setService.deleteSet(idSet);
         try {
             setClient.isEmptySet(idSet);
             Assert.fail();
@@ -817,8 +819,6 @@ public class SetTests {
         "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSet + "]",
                 e.contentUTF8().contains(idSet + "")
             );
-        } finally {
-            setService.deleteSet(idSet);
         }
     }
 
@@ -874,8 +874,8 @@ public class SetTests {
             long idIntersectionSet = setClient.intersection(idSetA, idSetB);
             Assert.assertNotEquals(idIntersectionSet, idSetA);
             Assert.assertNotEquals(idIntersectionSet, idSetB);
-            Assert.assertTrue(setService.equals(idSetA, idIntersectionSet));
-            Assert.assertTrue(setService.equals(idSetB, idIntersectionSet));
+            Assert.assertTrue(setService.areEqual(idSetA, idIntersectionSet));
+            Assert.assertTrue(setService.areEqual(idSetB, idIntersectionSet));
             setService.deleteSet(idIntersectionSet);
         } finally {
             setService.deleteSet(idSetA);
@@ -891,7 +891,7 @@ public class SetTests {
         try {
             long idIntersectionSet = setClient.intersection(idSet, idSet);
             Assert.assertNotEquals(idIntersectionSet, idSet);
-            Assert.assertTrue(setService.equals(idSet, idIntersectionSet));
+            Assert.assertTrue(setService.areEqual(idSet, idIntersectionSet));
             setService.deleteSet(idIntersectionSet);
         } finally {
             setService.deleteSet(idSet);
@@ -1333,7 +1333,7 @@ public class SetTests {
             Assert.assertNotEquals(idSetA, idUnion);
             Assert.assertNotEquals(idSetB, idUnion);
             Assert.assertNotEquals(idSetC, idUnion);
-            Assert.assertEquals(idAllElements, setService.getSetElements(idUnion));
+            Assert.assertEquals(Sets.newHashSet(idAllElements), setService.getSetElements(idUnion));
             setService.deleteSet(idUnion);
         } finally {
             elementService.deleteMultipleElements(Sets.newHashSet(idAllElements));
@@ -1486,7 +1486,7 @@ public class SetTests {
             Assert.assertNotEquals(idDifference, idSetA);
             Assert.assertNotEquals(idDifference, idSetB);
             Assert.assertEquals(
-                Sets.newHashSet(idAllElements.subList(4, 7)),
+                Sets.newHashSet(idAllElements.subList(0, 4)),
                 setService.getSetElements(idDifference)
             );
             setService.deleteSet(idDifference);

@@ -36,7 +36,7 @@ public class SetService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                "SELECT 1 FROM Sset FROM WHERE id=:id",
+                "SELECT 1 FROM Sset WHERE id=:id",
                     ImmutableMap.of("id", id),
                     Boolean.class
                 );
@@ -136,6 +136,10 @@ public class SetService {
      * @return The id of the created Set.
      */
     public long createSetWithElements(java.util.Set<Long> idElements) {
+        if(idElements.isEmpty()) {
+            return createEmptySet();
+        }
+
         long idSet = createSet();
         setElementService.createSetElements(
             idElements
@@ -222,7 +226,7 @@ public class SetService {
      */
     public long createAndAddElement(long idSet) {
         long idElement = elementService.createElement();
-        addElementToSet(idElement, idSet);
+        addElementToSet(idSet, idElement);
         return idElement;
     }
 
@@ -249,14 +253,31 @@ public class SetService {
      * @param idSetB
      * @return
      */
-    public boolean equals(long idSetA, long idSetB) {
+    public boolean areEqual(long idSetA, long idSetB) {
         try {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                    "Set @setA := (SELECT idElement FROM SetElement WHERE idSet=:idSetA;\n" +
-                        "Set @setB := (SELECT idElement FROM SetElement WHERE idSet=:idSetB;\n" +
-                        "SELECT 0 FROM (setA MINUS setB) UNION ALL (setB MINUS setA)",
+                    "SELECT " +
+                            "CASE " +
+                                "WHEN " +
+                                    "countSetAElements = countSetBElements AND " +
+                                    "countSetAElements = countUnionElements " +
+                                "THEN 1 " +
+                                "ELSE 0 " +
+                                "END " +
+                        "FROM (" +
+                            "SELECT " +
+                                "(SELECT COUNT(1) FROM SetElement WHERE idSet=:idSetA) AS countSetAElements, " +
+                                "(SELECT COUNT(1) FROM SetElement WHERE idSet=:idSetB) AS countSetBElements, " +
+                                "(" +
+                                    "SELECT COUNT(1) FROM (" +
+                                        "SELECT DISTINCT idElement " +
+                                        "FROM SetElement " +
+                                        "WHERE idSet=:idSetA OR idSet=:idSetB" +
+                                    ") AS unioned" +
+                                ") AS countUnionElements" +
+                        ") AS isEqual",
                     ImmutableMap.of(
                     "idSetA", idSetA,
                     "idSetB", idSetB
@@ -274,24 +295,25 @@ public class SetService {
      * @param idPossibleSubset The potential subset
      * @return
      */
-    public boolean isSubset(long idPossibleSuperset, long idPossibleSubset) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                "SELECT 0 FROM ( " +
-                        "(SELECT idElement FROM SetElement WHERE idSet=:idPossibleSubset) MINUS " +
-                        "(SELECT idElement FROM SetElement WHERE idSet=:idPossibleSuperset)" +
-                    ")",
-                    ImmutableMap.of(
-                    "idPossibleSuperset", idPossibleSuperset,
-                    "idPossibleSubset", idPossibleSubset
-                    ),
-                    Boolean.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            return true;
-        }
+    public boolean isSubset(long idPossibleSubset, long idPossibleSuperset) {
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+            "SELECT COUNT(1)=0 FROM ( " +
+                    "SELECT idElement " +
+                    "FROM SetElement " +
+                    "WHERE " +
+                        "idSet=:idPossibleSubset AND " +
+                        "idElement NOT IN (" +
+                            "SELECT idElement FROM SetElement WHERE idSet=:idPossibleSuperset" +
+                        ")" +
+                ") AS elementsInSubsetNotInSuperset",
+                ImmutableMap.of(
+                "idPossibleSuperset", idPossibleSuperset,
+                "idPossibleSubset", idPossibleSubset
+                ),
+                Boolean.class
+            );
     }
 
     /**
@@ -346,14 +368,14 @@ public class SetService {
                                 "SetElement " +
                             "WHERE " +
                                 "idSet=:idSetA" +
-                        ") INNER JOIN (" +
+                        ") AS setAElements INNER JOIN (" +
                             "SELECT " +
                                 "idElement " +
                             "FROM " +
                                 "SetElement " +
                             "WHERE " +
                                 "idSet=:idSetB" +
-                        ") " +
+                        ") AS setBElements " +
                             "USING(idElement)",
                         ImmutableMap.of(
                             "idSetA", idSetA,
@@ -376,20 +398,12 @@ public class SetService {
                 databaseService
                     .getNamedParameterJdbcTemplate()
                     .queryForList(
-                    "SELECT DISTINCT idElement FROM (" +
-                            "SELECT " +
-                                "idElement, " +
-                                "COUNT(1) AS numOccurrences " +
-                            "FROM " +
-                                "SetElement " +
-                            "WHERE " +
-                                "idSet IN :idSets " +
-                            "HAVING " +
-                                "numOccurrences=" + idSets.size() +
-                        ")",
-                        ImmutableMap.of(
-                        "idSets", idSets
-                        ),
+                    "SELECT idElement " +
+                        "FROM SetElement " +
+                        "WHERE idSet IN (:idSets) " +
+                        "GROUP BY idElement " +
+                        "HAVING COUNT(1)=" + idSets.size(),
+                        ImmutableMap.of("idSets", idSets),
                         Long.class
                     )
             )
@@ -463,18 +477,19 @@ public class SetService {
                     .queryForList(
                     "SELECT DISTINCT idElement FROM ( " +
                             "SELECT " +
-                                "idElement" +
+                                "idElement " +
                             "FROM " +
                                 "SetElement " +
                             "WHERE " +
-                                "idSetA=:idSetA " +
-                        ") MINUS ( " +
+                                "idSet=:idSetA " +
+                        ") AS setAElements " +
+                        "WHERE setAElements.idElement NOT IN ( " +
                             "SELECT " +
                                 "idElement " +
                             "FROM " +
                                 "SetElement " +
                             "WHERE " +
-                                "idSetB=:idSetB" +
+                                "idSet=:idSetB" +
                         ")",
                         ImmutableMap.of(
                             "idSetA", idSetA,
@@ -498,12 +513,11 @@ public class SetService {
                 databaseService
                     .getNamedParameterJdbcTemplate()
                     .queryForList(
-                    "Set @setA := (SELECT idElement FROM SetElement WHERE idSet=:idSetA;\n" +
-                        "Set @setB := (SELECT idElement FROM SetElement WHERE idSet=:idSetB;\n" +
-                        "(SELECT idElement FROM setA LEFT JOIN setB USING (idElement)) " +
-                        "UNION ALL " +
-                        "(SELECT idElement FROM setA RIGHT JOIN setB USING (idElement)) " +
-                        "WHERE setA.idElement IS NULL",
+                    "SELECT idElement " +
+                        "FROM SetElement " +
+                        "WHERE idSet IN(:idSetA, :idSetB) " +
+                        "GROUP BY idElement " +
+                        "HAVING COUNT(1)=1",
                         ImmutableMap.of(
                         "idSetA", idSetA,
                         "idSetB", idSetB
