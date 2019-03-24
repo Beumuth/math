@@ -214,6 +214,11 @@ public class SetService {
      * @param idElement
      */
     public void addElementToSet(long idSet, long idElement) {
+        //Do nothing if the set already contains the element
+        if(containsElement(idSet, idElement)) {
+            return;
+        }
+
         setElementService.createSetElement(
             new CreateSetElementRequest(idSet, idElement)
         );

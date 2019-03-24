@@ -84,11 +84,11 @@ public class SetController {
     }
 
 
-    @GetMapping(path="/set/{idSet}/containsElements/{idElements}")
+    @GetMapping(path="/set/{idSet}/containsElements")
     @ResponseBody
     public boolean doesSetContainElements(
         @PathVariable(name="idSet") long idSet,
-        @PathVariable(name="idElements") java.util.Set<Long> idElements
+        @RequestParam(name="idElements") java.util.Set<Long> idElements
     ) throws ClientErrorException {
         validateIfSetExists(idSet, "Set with given id [" + idSet + "] does not exist");
         validateIfElementsExist(idElements, ClientErrorStatusCode.NOT_FOUND);

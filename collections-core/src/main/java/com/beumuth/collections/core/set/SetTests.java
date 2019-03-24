@@ -400,6 +400,20 @@ public class SetTests {
     }
 
     @Test
+    public void addElementToSetTest_setContainsElement_shouldDoNothing() {
+        long idSet = setService.createSet();
+        long idElement = elementService.createElement();
+        setService.addElementToSet(idSet, idElement);
+        try {
+            setClient.addElementToSet(idSet, idElement);
+            Assert.assertTrue(setService.containsElement(idSet, idElement));
+        } finally {
+            setService.deleteSet(idSet);
+            elementService.deleteElement(idElement);
+        }
+    }
+
+    @Test
     public void addElementToSetTest_setDoesNotExist_shouldReturn404() {
         long idSet = setService.createSet();
         setService.deleteSet(idSet);

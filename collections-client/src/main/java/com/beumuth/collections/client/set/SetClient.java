@@ -29,7 +29,7 @@ public interface SetClient extends CollectionsClient {
     @RequestLine("GET api/sets/set/{idSet}/containsElement/{idElement}")
     boolean doesSetContainElement(@Param("idSet") long idSet, @Param("idElement") long idElement);
 
-    @RequestLine("GET api/sets/set/{idSet}/containsElements/{idElements}")
+    @RequestLine("GET api/sets/set/{idSet}/containsElements?idElements={idElements}")
     boolean doesSetContainElements(@Param("idSet") long idSet, @Param("idElements") java.util.Set<Long> idElements);
 
     @RequestLine("PUT api/sets/set/{idSet}/element/{idElement}")
