@@ -13,7 +13,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 @Component
-public class CollectionsDataSource extends BasicDataSource {
+public class MathDataSource extends BasicDataSource {
     @Autowired
     private ApplicationService applicationService;
     @Autowired
@@ -21,7 +21,7 @@ public class CollectionsDataSource extends BasicDataSource {
     @Autowired
     private DatabaseService databaseService;
 
-    public CollectionsDataSource() {
+    public MathDataSource() {
         setDriverClassName(Driver.class.getCanonicalName());
     }
 

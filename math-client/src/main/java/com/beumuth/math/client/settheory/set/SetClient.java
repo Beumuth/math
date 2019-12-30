@@ -47,6 +47,18 @@ public interface SetClient extends MathClient {
     @RequestLine("GET api/sets/set/{idSetA}/isSubset/{idSetB}")
     boolean isSubset(@Param("idSetA") long idPossibleSubset, @Param("idSetB") long idPossibleSuperset);
 
+    @RequestLine("GET api/sets/set/{idSetA}/isDisjoint/{idSetB}")
+    boolean areDisjoint(@Param("idSetA") long idSetA, @Param("idSetB") long idSetB);
+
+    @RequestLine("GET api/sets/areDisjoint?idSets={idSets}")
+    boolean areDisjointMultiple(@Param("idSets") java.util.Set<Long> idSets);
+
+    @RequestLine("GET api/sets/set/{idSet}/isPartition?candidatePartition={candidatePartition}")
+    boolean isPartition(
+        @Param("candidatePartition") java.util.Set<Long> candidatePartition,
+        @Param("idSet") long idSet
+    );
+
     @RequestLine("GET api/sets/set/{id}/size")
     int setCardinality(@Param("id") long id);
 
@@ -67,6 +79,9 @@ public interface SetClient extends MathClient {
 
     @RequestLine("POST api/sets/set/{idSetA}/subtract/{idSetB}")
     long difference(@Param("idSetA") long idSetA, @Param("idSetB") long idSetB);
+
+    @RequestLine("POST api/sets/set/{idSet}/complement/{idUniversalSet}")
+    long complement(@Param("idSet") long idSet, @Param("idUniversalSet") long idUniversalSet);
 
     @RequestLine("POST api/sets/set/{idSetA}/symmetricDifference/{idSetB}")
     long symmetricDifference(@Param("idSetA") long idSetA, @Param("idSetB") long idSetB);

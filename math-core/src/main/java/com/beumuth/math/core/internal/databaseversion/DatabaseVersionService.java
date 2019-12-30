@@ -4,7 +4,7 @@ import com.beumuth.math.client.internal.application.ApplicationMode;
 import com.beumuth.math.client.internal.databaseversion.CreateDatabaseVersionRequest;
 import com.beumuth.math.client.internal.databaseversion.DatabaseVersion;
 import com.beumuth.math.core.internal.application.ApplicationService;
-import com.beumuth.math.core.internal.database.CollectionsBeanPropertyRowMapper;
+import com.beumuth.math.core.internal.database.MathBeanPropertyRowMapper;
 import com.beumuth.math.core.internal.database.DatabaseService;
 import com.beumuth.math.core.internal.environment.EnvironmentService;
 import com.beumuth.math.core.internal.validation.InvalidResult;
@@ -33,7 +33,7 @@ import java.util.Optional;
 public class DatabaseVersionService {
 
     private static final BeanPropertyRowMapper<DatabaseVersion> ROW_MAPPER =
-        CollectionsBeanPropertyRowMapper.newInstance(DatabaseVersion.class);
+        MathBeanPropertyRowMapper.newInstance(DatabaseVersion.class);
 
     public static final String DATABASE_VERSION_SCRIPT_PATH = "/db/versions";
 

@@ -1,4 +1,4 @@
-package com.beumuth.math.core.internal;
+package com.beumuth.math.core;
 
 import com.beumuth.math.core.internal.application.ApplicationConfigurationValidator;
 import com.beumuth.math.core.internal.application.ApplicationService;

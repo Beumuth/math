@@ -23,15 +23,15 @@ public class DatabaseService {
     private EnvironmentService environmentService;
 
     @Autowired
-    private CollectionsDataSource collectionsDataSource;
+    private MathDataSource mathDataSource;
 
     private JdbcTemplate jdbcTemplate;
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     @PostConstruct
     public void initialize() {
-        jdbcTemplate = new JdbcTemplate(collectionsDataSource);
-        namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(collectionsDataSource);
+        jdbcTemplate = new JdbcTemplate(mathDataSource);
+        namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(mathDataSource);
     }
 
     public JdbcTemplate getJdbcTemplate() {

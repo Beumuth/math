@@ -10,9 +10,9 @@ public interface ApplicationClient extends MathClient {
     @RequestLine("PUT api/application/mode")
     void setApplicationMode(ApplicationMode applicationMode);
 
-    @RequestLine("GET api/application/internal")
+    @RequestLine("GET api/application/configuration")
     ApplicationConfiguration getApplicationConfiguration();
 
-    @RequestLine("PUT api/application/internal")
+    @RequestLine("PUT api/application/configuration")
     ApplicationConfiguration setApplicationConiguration(ApplicationConfiguration configuration);
 }

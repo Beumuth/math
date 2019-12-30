@@ -1,6 +1,5 @@
 package com.beumuth.math.core.internal.application;
 
-import com.beumuth.math.core.internal.database.CollectionsDataSource;
 import com.beumuth.math.core.internal.test.ResultJsonSerializer;
 import com.fatboyindustrial.gsonjodatime.Converters;
 import com.github.instantpudd.validator.ClientErrorExceptionHandler;
@@ -21,9 +20,6 @@ public class InternalApplicationConfiguration {
 
     @Autowired
     private ResultJsonSerializer resultJsonSerializer;
-
-    @Autowired
-    private CollectionsDataSource collectionsDataSource;
 
     @Primary
     @Bean(name="prettyPrint")

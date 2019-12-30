@@ -1,7 +1,7 @@
 package com.beumuth.math.core.settheory.set;
 
 import com.beumuth.math.client.settheory.set.Set;
-import com.beumuth.math.core.internal.database.CollectionsBeanPropertyRowMapper;
+import com.beumuth.math.core.internal.database.MathBeanPropertyRowMapper;
 import com.beumuth.math.core.internal.database.DatabaseService;
 import com.beumuth.math.core.settheory.element.ElementService;
 import com.beumuth.math.core.settheory.setelement.CreateSetElementRequest;
@@ -19,8 +19,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class SetService {
-    private static final CollectionsBeanPropertyRowMapper<Set> ROW_MAPPER =
-        CollectionsBeanPropertyRowMapper.newInstance(Set.class);
+    private static final MathBeanPropertyRowMapper<Set> ROW_MAPPER =
+        MathBeanPropertyRowMapper.newInstance(Set.class);
 
     @Autowired
     private DatabaseService databaseService;
@@ -322,6 +322,104 @@ public class SetService {
     }
 
     /**
+     * Determine if A and B are disjoint; that is, if the intersection of A and B is an empty Set.
+     * @param idSetA
+     * @param idSetB
+     * @return True if disjoint, otherwise false.
+     */
+    public boolean areDisjoint(long idSetA, long idSetB) {
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT " +
+                    "COUNT(1)=0 " +
+                "FROM (" +
+                    "SELECT DISTINCT idElement FROM ( " +
+                        "SELECT " +
+                            "idElement " +
+                        "FROM " +
+                            "SetElement " +
+                        "WHERE " +
+                            "idSet=:idSetA" +
+                        ") AS setAElements " +
+                    "INNER JOIN (" +
+                        "SELECT " +
+                            "idElement " +
+                        "FROM " +
+                            "SetElement " +
+                        "WHERE " +
+                            "idSet=:idSetB" +
+                    ") AS setBElements " +
+                        "USING(idElement) " +
+                ") AS elementsInIntersection",
+                ImmutableMap.of(
+                    "idSetA", idSetA,
+                    "idSetB", idSetB
+                ),
+                Boolean.class
+            );
+    }
+
+    /**
+     * Determine if the collection of Sets are disjoint; that is, if their intersection is an empty Set.
+     * @param idSets
+     * @return True if disjoint, otherwise false.
+     */
+    public boolean areDisjointMultiple(java.util.Set<Long> idSets) {
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT  " +
+                    "COUNT(1) = 0 " +
+                "FROM ( " +
+                    "SELECT " +
+                        "idElement " +
+                    "FROM " +
+                        "SetElement " +
+                    "WHERE " +
+                        "idSet IN (:idSets) " +
+                    "GROUP BY  " +
+                        "idElement " +
+                    "HAVING " +
+                        "COUNT(1) > 1 " +
+                ") AS idSharedElements",
+                ImmutableMap.of("idSets", idSets),
+                Boolean.class
+            );
+    }
+
+    /**
+     * Determine if the given set of Sets is a partition of a Set; that is, if they are disjoint and their union equals
+     * the set.
+     * @param idSet The id of the Set that they may be a partition of.
+     * @param candidatePartition The ids of the Sets that may form a partition
+     * @return True if a partition, otherwise false.
+     */
+    public boolean isPartition(java.util.Set<Long> candidatePartition, long idSet) {
+        //Does the candidate partition only have one element?
+        if(candidatePartition.size() == 1) {
+            //Yes. It is a partition iff it is equal to the Set.
+            return areEqual(idSet, candidatePartition.stream().findFirst().get());
+        }
+
+        //The candidate partition has multiple Sets.
+        //Are the multiple Sets disjoint?
+        if(! areDisjointMultiple(candidatePartition)) {
+            //No. It cannot be a partition.
+            return false;
+        }
+
+        //It is a partition if the union equals the set
+        boolean isPartition = false;
+        long idUnion = unionMultiple(candidatePartition);
+        if(areEqual(idSet, idUnion)) {
+            isPartition = true;
+        }
+        deleteSet(idUnion);
+        return isPartition;
+    }
+
+    /**
      * Determine the number of elements in a Set.
      * @param idSet
      * @return The cardinality
@@ -504,6 +602,18 @@ public class SetService {
                     )
             )
         );
+    }
+
+    /**
+     * Create a Set that is the complement of the given set with respective to the given universal set.
+     * That is, the Set that contains all of the Elements in the universal set that are not in the given set.
+     * Note that this is a synonym for difference(idUniverse, idSet).
+     * @param idSet
+     * @param idUniversalSet
+     * @return The id of the new Set.
+     */
+    public long complement(long idSet, long idUniversalSet) {
+        return difference(idUniversalSet, idSet);
     }
 
     /**

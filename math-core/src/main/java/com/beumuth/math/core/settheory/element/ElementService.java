@@ -1,7 +1,7 @@
 package com.beumuth.math.core.settheory.element;
 
 import com.beumuth.math.client.settheory.element.Element;
-import com.beumuth.math.core.internal.database.CollectionsBeanPropertyRowMapper;
+import com.beumuth.math.core.internal.database.MathBeanPropertyRowMapper;
 import com.beumuth.math.core.internal.database.DatabaseService;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -20,8 +20,8 @@ import java.util.Set;
 
 @Service
 public class ElementService {
-    private static final CollectionsBeanPropertyRowMapper<Element> ROW_MAPPER =
-        CollectionsBeanPropertyRowMapper.newInstance(Element.class);
+    private static final MathBeanPropertyRowMapper<Element> ROW_MAPPER =
+        MathBeanPropertyRowMapper.newInstance(Element.class);
 
     @Autowired
     private DatabaseService databaseService;

@@ -5,6 +5,7 @@ import com.beumuth.math.core.settheory.element.ElementService;
 import com.github.instantpudd.validator.ClientErrorException;
 import com.github.instantpudd.validator.ClientErrorStatusCode;
 import com.github.instantpudd.validator.Validator;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -147,6 +148,48 @@ public class SetController {
         return setService.isSubset(idSetA, idSetB);
     }
 
+    @GetMapping(path="/set/{idSetA}/isDisjoint/{idSetB}")
+    @ResponseBody
+    public boolean areDisjoint(
+        @PathVariable("idSetA") long idSetA,
+        @PathVariable("idSetB") long idSetB
+    ) throws ClientErrorException {
+        validateIfSetExists(idSetA, "Set with given id [" + idSetA + "] does not exist");
+        validateIfSetExists(idSetB, "Set with given id [" + idSetB + "] does not exist");
+        return setService.areDisjoint(idSetA, idSetB);
+    }
+
+    @GetMapping(path="/areDisjoint")
+    @ResponseBody
+    public boolean areDisjointMultiple(
+        @RequestParam("idSets") java.util.Set<Long> idSets
+    ) throws ClientErrorException {
+        Validator
+            .returnStatus(ClientErrorStatusCode.BAD_REQUEST)
+            .ifTrue(idSets.size() < 2)
+            .withErrorMessage("idSets must contain at least two ids")
+            .execute();
+        validateIfSetsExist(idSets);
+        return setService.areDisjointMultiple(idSets);
+    }
+
+    @GetMapping(path="/set/{idSet}/isPartition")
+    @ResponseBody
+    public boolean isPartition(
+        @PathVariable("idSet") long idSet,
+        @RequestParam("candidatePartition") java.util.Set<Long> candidatePartition
+    ) throws ClientErrorException {
+        validateIfSetExists(idSet, "Set with given id [" + idSet + "] does not exist");
+        Validator
+            .returnStatus(ClientErrorStatusCode.BAD_REQUEST)
+            .ifTrue(candidatePartition.isEmpty())
+            .withErrorMessage("candidatePartition cannot be empty")
+            .execute();
+        validateIfSetsExist(candidatePartition);
+
+        return setService.isPartition(candidatePartition, idSet);
+    }
+
     @GetMapping(path="/set/{id}/size")
     @ResponseBody
     public int setCardinality(@PathVariable("id") long id) throws ClientErrorException {
@@ -208,6 +251,23 @@ public class SetController {
         validateIfSetExists(idSetA, "Set with given id [" + idSetA + "] does not exist");
         validateIfSetExists(idSetB, "Set with given id [" + idSetB + "] does not exist");
         return setService.difference(idSetA, idSetB);
+    }
+
+    @PostMapping(path="/set/{idSet}/complement/{idUniversalSet}")
+    @ResponseBody
+    public long complement(
+        @PathVariable("idSet") long idSet,
+        @PathVariable("idUniversalSet") long idUniversalSet
+    ) throws ClientErrorException {
+        validateIfSetExists(idSet, "Set with given id [" + idSet + "] does not exist");
+        validateIfSetExists(idUniversalSet, "Set with given id [" + idUniversalSet + "] does not exist");
+        Validator
+            .returnStatus(ClientErrorStatusCode.BAD_REQUEST)
+            .ifFalse(setService.isSubset(idSet, idUniversalSet))
+            .withErrorMessage(
+                "The given set [" + idSet + "] is not a subset of the given universal set [ " + idUniversalSet + "]"
+            ).execute();
+        return setService.complement(idSet, idUniversalSet);
     }
 
     @PostMapping(path="/set/{idSetA}/symmetricDifference/{idSetB}")

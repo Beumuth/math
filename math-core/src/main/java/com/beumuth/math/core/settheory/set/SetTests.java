@@ -4,6 +4,8 @@ import com.beumuth.math.client.settheory.set.SetClient;
 import com.beumuth.math.core.internal.client.ClientService;
 import com.beumuth.math.core.settheory.element.ElementService;
 import com.beumuth.math.core.settheory.setelement.SetElementService;
+import com.github.instantpudd.validator.ClientErrorException;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import feign.FeignException;
@@ -145,7 +147,7 @@ public class SetTests {
         } catch(FeignException e) {
             Assert.assertEquals(400, e.status());
             Assert.assertTrue(
-        "Response body [" + e.contentUTF8() + "] should contain the ids of the nonexistent Element [" +
+                "Response body [" + e.contentUTF8() + "] should contain the ids of the nonexistent Element [" +
                     idNonExistentElement + "]",
                 e.contentUTF8().contains(idNonExistentElement + "")
             );
@@ -167,7 +169,7 @@ public class SetTests {
             Assert.assertEquals(400, e.status());
             for(long idElement : idNonExistentElements) {
                 Assert.assertTrue(
-            "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Element [" +
+                    "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Element [" +
                         idElement + "]",
                     e.contentUTF8().contains(idElement + "")
                 );
@@ -214,7 +216,7 @@ public class SetTests {
         } catch(FeignException e) {
             Assert.assertEquals(404, e.status());
             Assert.assertTrue(
-        "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" +
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" +
                     idSet + "]",
                 e.contentUTF8().contains(idSet + "")
             );
@@ -383,6 +385,7 @@ public class SetTests {
             }
         } finally {
             elementService.deleteMultipleElements(idElements);
+            setService.deleteSet(idSet);
         }
     }
 
@@ -424,7 +427,7 @@ public class SetTests {
         } catch(FeignException e) {
             Assert.assertEquals(404, e.status());
             Assert.assertTrue(
-        "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSet + "]",
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSet + "]",
                 e.contentUTF8().contains(idSet + "")
             );
         } finally {
@@ -443,7 +446,7 @@ public class SetTests {
         } catch(FeignException e) {
             Assert.assertEquals(404, e.status());
             Assert.assertTrue(
-        "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Element [" +
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Element [" +
                     idElement + "]",
                 e.contentUTF8().contains(idElement + "")
             );
@@ -477,7 +480,7 @@ public class SetTests {
         } catch(FeignException e) {
             Assert.assertEquals(404, e.status());
             Assert.assertTrue(
-        "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent set [" + idSet + "]",
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent set [" + idSet + "]",
                 e.contentUTF8().contains(idSet + "")
             );
         }
@@ -519,9 +522,11 @@ public class SetTests {
         } catch(FeignException e) {
             Assert.assertEquals(404, e.status());
             Assert.assertTrue(
-        "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSet + "]",
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSet + "]",
                 e.contentUTF8().contains(idSet + "")
             );
+        } finally {
+            elementService.deleteElement(idElement);
         }
     }
 
@@ -536,10 +541,12 @@ public class SetTests {
         } catch(FeignException e) {
             Assert.assertEquals(404, e.status());
             Assert.assertTrue(
-        "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Element [" +
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Element [" +
                     idElement + "]",
                 e.contentUTF8().contains(idElement + "")
             );
+        } finally {
+            setService.deleteSet(idSet);
         }
     }
 
@@ -751,11 +758,510 @@ public class SetTests {
         } catch(FeignException e) {
             Assert.assertEquals(404, e.status());
             Assert.assertTrue(
-        "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSetB + "]",
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSetB + "]",
                 e.contentUTF8().contains(idSetB + "")
             );
         } finally {
             setService.deleteSet(idSetA);
+        }
+    }
+
+    @Test
+    public void areDisjointTest_areDisjointAndNonempty_shouldReturnTrue() {
+        Set<Long> idElementsA = Sets.newHashSet(elementService.createMultipleElements(4));
+        Set<Long> idElementsB = Sets.newHashSet(elementService.createMultipleElements(5));
+        long idSetA = setService.createSetWithElements(idElementsA);
+        long idSetB = setService.createSetWithElements(idElementsB);
+        try {
+            Assert.assertTrue(setClient.areDisjoint(idSetA, idSetB));
+        } finally {
+            setService.deleteSet(idSetA);
+            setService.deleteSet(idSetB);
+            elementService.deleteMultipleElements(idElementsA);
+            elementService.deleteMultipleElements(idElementsB);
+        }
+    }
+
+    @Test
+    public void areDisjointTest_AIsEmpty_shouldReturnTrue() {
+        Set<Long> idElementsB = Sets.newHashSet(elementService.createMultipleElements(5));
+        long idSetA = setService.createEmptySet();
+        long idSetB = setService.createSetWithElements(idElementsB);
+        try {
+            Assert.assertTrue(setClient.areDisjoint(idSetA, idSetB));
+        } finally {
+            setService.deleteSet(idSetA);
+            setService.deleteSet(idSetB);
+            elementService.deleteMultipleElements(idElementsB);
+        }
+    }
+
+    @Test
+    public void areDisjointTest_BIsEmpty_shouldReturnTrue() {
+        Set<Long> idElementsA = Sets.newHashSet(elementService.createMultipleElements(5));
+        long idSetA = setService.createSetWithElements(idElementsA);
+        long idSetB = setService.createEmptySet();
+        try {
+            Assert.assertTrue(setClient.areDisjoint(idSetA, idSetB));
+        } finally {
+            setService.deleteSet(idSetA);
+            setService.deleteSet(idSetB);
+            elementService.deleteMultipleElements(idElementsA);
+        }
+    }
+
+    @Test
+    public void areDisjointTest_AAndBAreEmpty_shouldReturnTrue() {
+        long idSetA = setService.createEmptySet();
+        long idSetB = setService.createEmptySet();
+        try {
+            Assert.assertTrue(setClient.areDisjoint(idSetA, idSetB));
+        } finally {
+            setService.deleteSet(idSetA);
+            setService.deleteSet(idSetB);
+        }
+    }
+
+    @Test
+    public void areDisjointTest_areNotDisjoint_shouldReturnFalse() {
+        long idSharedElement = elementService.createElement();
+        Set<Long> idElementsA = Sets.newHashSet(elementService.createMultipleElements(4));
+        idElementsA.add(idSharedElement);
+        Set<Long> idElementsB = Sets.newHashSet(elementService.createMultipleElements(5));
+        idElementsB.add(idSharedElement);
+        long idSetA = setService.createSetWithElements(idElementsA);
+        long idSetB = setService.createSetWithElements(idElementsB);
+        try {
+            Assert.assertFalse(setClient.areDisjoint(idSetA, idSetB));
+        } finally {
+            setService.deleteSet(idSetA);
+            setService.deleteSet(idSetB);
+            elementService.deleteMultipleElements(idElementsA);
+            elementService.deleteMultipleElements(idElementsB);
+        }
+    }
+
+    @Test
+    public void areDisjointTest_aDoesNotExist_shouldReturn404() {
+        Set<Long> idElementsB = Sets.newHashSet(elementService.createMultipleElements(5));
+        long idSetA = setService.createSet();
+        setService.deleteSet(idSetA);
+        long idSetB = setService.createSetWithElements(idElementsB);
+        try {
+            setClient.areDisjoint(idSetA, idSetB);
+            Assert.fail();
+        } catch(FeignException e) {
+            Assert.assertEquals(404, e.status());
+            Assert.assertTrue(
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSetA + "]",
+                e.contentUTF8().contains(idSetA + "")
+            );
+        } finally {
+            setService.deleteSet(idSetB);
+            elementService.deleteMultipleElements(idElementsB);
+        }
+    }
+
+    @Test
+    public void areDisjointTest_bDoesNotExist_shouldReturn404() {
+        Set<Long> idElementsA = Sets.newHashSet(elementService.createMultipleElements(5));
+        long idSetA = setService.createSetWithElements(idElementsA);
+        long idSetB = setService.createSet();
+        setService.deleteSet(idSetB);
+        try {
+            setClient.areDisjoint(idSetA, idSetB);
+            Assert.fail();
+        } catch(FeignException e) {
+            Assert.assertEquals(404, e.status());
+            Assert.assertTrue(
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSetB + "]",
+                e.contentUTF8().contains(idSetB + "")
+            );
+        } finally {
+            setService.deleteSet(idSetA);
+            elementService.deleteMultipleElements(idElementsA);
+        }
+    }
+
+    @Test
+    public void areDisjointMultipleTest_areDisjoint_shouldReturnTrue() {
+        Set<Long> idElementsA = Sets.newHashSet(elementService.createMultipleElements(5));
+        Set<Long> idElementsB = Sets.newHashSet(elementService.createMultipleElements(5));
+        Set<Long> idElementsC = Sets.newHashSet(elementService.createMultipleElements(5));
+        Set<Long> idElementsD = Sets.newHashSet(elementService.createMultipleElements(5));
+        long idSetA = setService.createSetWithElements(idElementsA);
+        long idSetB = setService.createSetWithElements(idElementsB);
+        long idSetC = setService.createSetWithElements(idElementsC);
+        long idSetD = setService.createSetWithElements(idElementsD);
+        try {
+            Assert.assertTrue(
+                setClient.areDisjointMultiple(
+                    Sets.newHashSet(idSetA, idSetB, idSetC, idSetD)
+                )
+            );
+        } finally {
+            setService.deleteSet(idSetA);
+            setService.deleteSet(idSetB);
+            setService.deleteSet(idSetC);
+            setService.deleteSet(idSetD);
+            elementService.deleteMultipleElements(idElementsA);
+            elementService.deleteMultipleElements(idElementsB);
+            elementService.deleteMultipleElements(idElementsC);
+            elementService.deleteMultipleElements(idElementsD);
+        }
+    }
+
+    @Test
+    public void areDisjointMultipleTest_areNotDisjoint_shouldReturnTrue() {
+        long idSharedElement = elementService.createElement();  //Shared by A and B
+        Set<Long> idElementsA = Sets.newHashSet(elementService.createMultipleElements(5));
+        idElementsA.add(idSharedElement);
+        Set<Long> idElementsB = Sets.newHashSet(elementService.createMultipleElements(5));
+        idElementsB.add(idSharedElement);
+        Set<Long> idElementsC = Sets.newHashSet(elementService.createMultipleElements(5));
+        Set<Long> idElementsD = Sets.newHashSet(elementService.createMultipleElements(5));
+        long idSetA = setService.createSetWithElements(idElementsA);
+        long idSetB = setService.createSetWithElements(idElementsB);
+        long idSetC = setService.createSetWithElements(idElementsC);
+        long idSetD = setService.createSetWithElements(idElementsD);
+        try {
+            Assert.assertFalse(
+                setClient.areDisjointMultiple(
+                    Sets.newHashSet(idSetA, idSetB, idSetC, idSetD)
+                )
+            );
+        } finally {
+            setService.deleteSet(idSetA);
+            setService.deleteSet(idSetB);
+            setService.deleteSet(idSetC);
+            setService.deleteSet(idSetD);
+            elementService.deleteMultipleElements(idElementsA);
+            elementService.deleteMultipleElements(idElementsB);
+            elementService.deleteMultipleElements(idElementsC);
+            elementService.deleteMultipleElements(idElementsD);
+        }
+    }
+
+    @Test
+    public void areDisjointMultipleTest_areAllEmpty_shouldReturnTrue() {
+        long idSetA = setService.createEmptySet();
+        long idSetB = setService.createEmptySet();
+        long idSetC = setService.createEmptySet();
+        long idSetD = setService.createEmptySet();
+        try {
+            Assert.assertTrue(
+                setClient.areDisjointMultiple(
+                    Sets.newHashSet(idSetA, idSetB, idSetC, idSetD)
+                )
+            );
+        } finally {
+            setService.deleteSet(idSetA);
+            setService.deleteSet(idSetB);
+            setService.deleteSet(idSetC);
+            setService.deleteSet(idSetD);
+        }
+    }
+
+    @Test
+    public void areDisjointMultipleTest_areAllEqual_shouldReturnFalse() {
+        Set<Long> idElements = Sets.newHashSet(elementService.createMultipleElements(5));
+        long idSetA = setService.createSetWithElements(idElements);
+        long idSetB = setService.createSetWithElements(idElements);
+        long idSetC = setService.createSetWithElements(idElements);
+        long idSetD = setService.createSetWithElements(idElements);
+        try {
+            Assert.assertFalse(
+                setClient.areDisjointMultiple(
+                    Sets.newHashSet(idSetA, idSetB, idSetC, idSetD)
+                )
+            );
+        } finally {
+            setService.deleteSet(idSetA);
+            setService.deleteSet(idSetB);
+            setService.deleteSet(idSetC);
+            setService.deleteSet(idSetD);
+            elementService.deleteMultipleElements(idElements);
+        }
+    }
+
+    @Test
+    public void areDisjointMultipleTest_emptySet_shouldReturn400() {
+        try {
+            setClient.areDisjointMultiple(Sets.newHashSet());
+            Assert.fail();
+        } catch(FeignException e) {
+            Assert.assertEquals(400, e.status());
+        }
+    }
+
+    @Test
+    public void areDisjointMultipleTest_oneSet_shouldReturn400() {
+        Set<Long> idElements = Sets.newHashSet(elementService.createMultipleElements(5));
+        long idSet = setService.createSetWithElements(idElements);
+        try {
+            setClient.areDisjointMultiple(Sets.newHashSet(idSet));
+            Assert.fail();
+        } catch(FeignException e) {
+            Assert.assertEquals(400, e.status());
+        } finally {
+            setService.deleteSet(idSet);
+            elementService.deleteMultipleElements(idElements);
+        }
+    }
+
+    @Test
+    public void areDisjointMultipleTest_setDoesNotExist_shouldReturn400() {
+        Set<Long> idElementsB = Sets.newHashSet(elementService.createMultipleElements(5));
+        Set<Long> idElementsC = Sets.newHashSet(elementService.createMultipleElements(5));
+        Set<Long> idElementsD = Sets.newHashSet(elementService.createMultipleElements(5));
+        long idSetA = setService.createSet();
+        setService.deleteSet(idSetA);
+        long idSetB = setService.createSetWithElements(idElementsB);
+        long idSetC = setService.createSetWithElements(idElementsC);
+        long idSetD = setService.createSetWithElements(idElementsD);
+        try {
+            setClient.areDisjointMultiple(
+                Sets.newHashSet(idSetA, idSetB, idSetC, idSetD)
+            );
+            Assert.fail();
+        } catch(FeignException e) {
+            Assert.assertEquals(400, e.status());
+            Assert.assertTrue(
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSetA + "]",
+                e.contentUTF8().contains(idSetA + "")
+            );
+        } finally {
+            setService.deleteSet(idSetB);
+            setService.deleteSet(idSetC);
+            setService.deleteSet(idSetD);
+            elementService.deleteMultipleElements(idElementsB);
+            elementService.deleteMultipleElements(idElementsC);
+            elementService.deleteMultipleElements(idElementsD);
+        }
+    }
+
+    @Test
+    public void isPartitionTest_isPartitionWithMultipleElements_shouldReturnTrue() {
+        Set<Long> idElementsSubsetA = Sets.newHashSet(elementService.createMultipleElements(3));
+        Set<Long> idElementsSubsetB = Sets.newHashSet(elementService.createMultipleElements(5));
+        Set<Long> idElementsSubsetC = Sets.newHashSet(elementService.createMultipleElements(2));
+        Set<Long> idElementsSet = Sets.union(Sets.union(idElementsSubsetA, idElementsSubsetB), idElementsSubsetC);
+        long idSubsetA = setService.createSetWithElements(idElementsSubsetA);
+        long idSubsetB = setService.createSetWithElements(idElementsSubsetB);
+        long idSubsetC = setService.createSetWithElements(idElementsSubsetC);
+        long idSet = setService.createSetWithElements(idElementsSet);
+        try {
+            Assert.assertTrue(
+                setClient.isPartition(
+                    Sets.newHashSet(idSubsetA, idSubsetB, idSubsetC),
+                    idSet
+                )
+            );
+        } finally {
+            setService.deleteSet(idSubsetA);
+            setService.deleteSet(idSubsetB);
+            setService.deleteSet(idSubsetC);
+            setService.deleteSet(idSet);
+            elementService.deleteMultipleElements(idElementsSet);
+        }
+    }
+
+    @Test
+    public void isPartitionTest_partitionIsSingletonWithSet_shouldReturnTrue() {
+        Set<Long> idElements = Sets.newHashSet(elementService.createMultipleElements(5));
+        long idSet = setService.createSetWithElements(idElements);
+        try {
+            //If A is a set, then {A} should be a partition of A
+            Assert.assertTrue(setClient.isPartition(Sets.newHashSet(idSet), idSet));
+        } finally {
+            setService.deleteSet(idSet);
+            elementService.deleteMultipleElements(idElements);
+        }
+    }
+
+    @Test
+    public void isPartitionTest_unionDoesNotEqualSet_shouldReturnFalse() {
+        Set<Long> idElementsSubsetA = Sets.newHashSet(elementService.createMultipleElements(3));
+        Set<Long> idElementsSubsetB = Sets.newHashSet(elementService.createMultipleElements(5));
+        Set<Long> idElementsSubsetC = Sets.newHashSet(elementService.createMultipleElements(2));
+        Long idBonusElement = elementService.createElement();
+        Set<Long> idElementsSet = Sets.newHashSet(idBonusElement);
+        idElementsSet.addAll(idElementsSubsetA);
+        idElementsSet.addAll(idElementsSubsetB);
+        idElementsSet.addAll(idElementsSubsetC);
+        long idSubsetA = setService.createSetWithElements(idElementsSubsetA);
+        long idSubsetB = setService.createSetWithElements(idElementsSubsetB);
+        long idSubsetC = setService.createSetWithElements(idElementsSubsetC);
+        long idSet = setService.createSetWithElements(idElementsSet);
+        try {
+            Assert.assertFalse(
+                setClient.isPartition(
+                    Sets.newHashSet(idSubsetA, idSubsetB, idSubsetC),
+                    idSet
+                )
+            );
+        } finally {
+            setService.deleteSet(idSubsetA);
+            setService.deleteSet(idSubsetB);
+            setService.deleteSet(idSubsetC);
+            setService.deleteSet(idSet);
+            elementService.deleteMultipleElements(idElementsSet);
+        }
+    }
+
+    @Test
+    public void isPartitionTest_partitionNotDisjoint_shouldReturnFalse() {
+        long idSharedElement = elementService.createElement(); //Shared by A and B
+        Set<Long> idElementsSubsetA = Sets.newHashSet(elementService.createMultipleElements(3));
+        idElementsSubsetA.add(idSharedElement);
+        Set<Long> idElementsSubsetB = Sets.newHashSet(elementService.createMultipleElements(5));
+        idElementsSubsetB.add(idSharedElement);
+        Set<Long> idElementsSubsetC = Sets.newHashSet(elementService.createMultipleElements(2));
+        Set<Long> idElementsSet = Sets.union(Sets.union(idElementsSubsetA, idElementsSubsetB), idElementsSubsetC);
+        long idSubsetA = setService.createSetWithElements(idElementsSubsetA);
+        long idSubsetB = setService.createSetWithElements(idElementsSubsetB);
+        long idSubsetC = setService.createSetWithElements(idElementsSubsetC);
+        long idSet = setService.createSetWithElements(idElementsSet);
+        try {
+            Assert.assertFalse(
+                setClient.isPartition(
+                    Sets.newHashSet(idSubsetA, idSubsetB, idSubsetC),
+                    idSet
+                )
+            );
+        } finally {
+            setService.deleteSet(idSubsetA);
+            setService.deleteSet(idSubsetB);
+            setService.deleteSet(idSubsetC);
+            setService.deleteSet(idSet);
+            elementService.deleteMultipleElements(idElementsSet);
+        }
+    }
+
+    @Test
+    public void isPartitionTest_setIsEmpty_shouldReturnFalse() {
+        long idEmptySet = setService.createEmptySet();
+        Set<Long> idElements = Sets.newHashSet(elementService.createMultipleElements(5));
+        long idNonEmptySet = setService.createSetWithElements(idElements);
+        try {
+            Assert.assertFalse(
+                setClient.isPartition(Sets.newHashSet(idNonEmptySet), idEmptySet)
+            );
+        } finally {
+            setService.deleteSet(idEmptySet);
+            setService.deleteSet(idNonEmptySet);
+            elementService.deleteMultipleElements(idElements);
+        }
+    }
+
+    @Test
+    public void isPartitionTest_partitionEmptySets_setEmptySet_shouldReturnTrue() {
+        long idSet = setService.createEmptySet();
+        long idPartitionSetA = setService.createEmptySet();
+        long idPartitionSetB = setService.createEmptySet();
+        long idPartitionSetC = setService.createEmptySet();
+        try {
+            Assert.assertTrue(
+                setClient.isPartition(
+                    Sets.newHashSet(idPartitionSetA, idPartitionSetB, idPartitionSetC),
+                    idSet
+                )
+            );
+        } finally {
+            setService.deleteSet(idSet);
+            setService.deleteSet(idPartitionSetA);
+            setService.deleteSet(idPartitionSetB);
+            setService.deleteSet(idPartitionSetC);
+        }
+    }
+
+    @Test
+    public void isPartitionTest_partitionEmptySet_setIsNonEmpty_shouldReturnFalse() {
+        long idElement = elementService.createElement();
+        long idSet = setService.createSetWithElements(Sets.newHashSet(idElement));
+        long idPartitionSet = setService.createEmptySet();
+        try {
+            Assert.assertFalse(
+                setClient.isPartition(
+                    Sets.newHashSet(idPartitionSet),
+                    idSet
+                )
+            );
+        } finally {
+            setService.deleteSet(idSet);
+            setService.deleteSet(idPartitionSet);
+            elementService.deleteElement(idElement);
+        }
+    }
+
+    @Test
+    public void isPartitionSet_partitionSetIsEmpty_shouldReturn400() {
+        long idElement = elementService.createElement();
+        long idSet = setService.createSetWithElements(Sets.newHashSet(idElement));
+        try {
+            setClient.isPartition(
+                Sets.newHashSet(),
+                idSet
+            );
+            Assert.fail();
+        } catch(FeignException e) {
+            Assert.assertEquals(400, e.status());
+        } finally {
+            setService.deleteSet(idSet);
+            elementService.deleteElement(idElement);
+        }
+    }
+
+    @Test
+    public void isPartitionTest_setDoesNotExist_shouldReturn404() {
+        long idSet = setService.createSet();
+        setService.deleteSet(idSet);
+        long idPartitionSet = setService.createEmptySet();
+        try {
+            setClient.isPartition(
+                Sets.newHashSet(idPartitionSet),
+                idSet
+            );
+            Assert.fail();
+        } catch(FeignException e) {
+            Assert.assertEquals(404, e.status());
+            Assert.assertTrue(
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSet + "]",
+                e.contentUTF8().contains(idSet + "")
+            );
+        } finally {
+            setService.deleteSet(idPartitionSet);
+        }
+    }
+
+    @Test
+    public void isPartitionTest_setInPartitionDoesNotExist_shouldReturn400() {
+        Set<Long> idElementsSubsetA = Sets.newHashSet(elementService.createMultipleElements(3));
+        Set<Long> idElementsSubsetB = Sets.newHashSet(elementService.createMultipleElements(5));
+        Set<Long> idElementsSet = Sets.union(idElementsSubsetA, idElementsSubsetB);
+        long idSubsetA = setService.createSetWithElements(idElementsSubsetA);
+        long idSubsetB = setService.createSetWithElements(idElementsSubsetB);
+        long idSubsetC = setService.createSet();
+        setService.deleteSet(idSubsetC);
+        long idSet = setService.createSetWithElements(idElementsSet);
+        try {
+            setClient.isPartition(
+                Sets.newHashSet(idSubsetA, idSubsetB, idSubsetC),
+                idSet
+            );
+            Assert.fail();
+        } catch(FeignException e) {
+            Assert.assertEquals(400, e.status());
+            Assert.assertTrue(
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSubsetC +
+                    "]",
+                e.contentUTF8().contains(idSubsetC + "")
+            );
+        } finally {
+            setService.deleteSet(idSubsetA);
+            setService.deleteSet(idSubsetB);
+            setService.deleteSet(idSet);
+            elementService.deleteMultipleElements(idElementsSet);
         }
     }
 
@@ -1634,7 +2140,7 @@ public class SetTests {
         } catch(FeignException e) {
             Assert.assertEquals(404, e.status());
             Assert.assertTrue(
-        "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSetA + "]",
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSetA + "]",
                 e.contentUTF8().contains(idSetA + "")
             );
         } finally {
@@ -1653,11 +2159,176 @@ public class SetTests {
         } catch(FeignException e) {
             Assert.assertEquals(404, e.status());
             Assert.assertTrue(
-        "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSetB + "]",
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSetB + "]",
                 e.contentUTF8().contains(idSetB + "")
             );
         } finally {
             setService.deleteSet(idSetA);
+        }
+    }
+
+    @Test
+    public void complementTest_setSubsetOfUniverse_shouldReturnUniverseMinusSet() {
+        List<Long> idElementsUniverse = elementService.createMultipleElements(10);
+        Set<Long> idElementsSet = Sets.newHashSet(idElementsUniverse.subList(0, 5));
+        long idUniverse = setService.createSetWithElements(Sets.newHashSet(idElementsUniverse));
+        long idSet = setService.createSetWithElements(idElementsSet);
+        try {
+            long idComplement = setClient.complement(idSet, idUniverse);
+            Assert.assertNotEquals(idComplement, idUniverse);
+            Assert.assertNotEquals(idComplement, idSet);
+            Assert.assertEquals(
+                Sets.difference(Sets.newHashSet(idElementsUniverse), idElementsSet),
+                setService.getSetElements(idComplement)
+            );
+            setService.deleteSet(idComplement);
+        } finally {
+            setService.deleteSet(idUniverse);
+            setService.deleteSet(idSet);
+            elementService.deleteMultipleElements(ImmutableSet.copyOf(idElementsUniverse));
+        }
+    }
+
+    @Test
+    public void complementTest_setEmptyUniverseNotEmpty_shouldReturnUniverse() {
+        Set<Long> idElementsUniverse = Sets.newHashSet(elementService.createMultipleElements(5));
+        long idUniverse = setService.createSetWithElements(idElementsUniverse);
+        long idSet = setService.createEmptySet();
+        try {
+            long idComplement = setClient.complement(idSet, idUniverse);
+            Assert.assertNotEquals(idComplement, idUniverse);
+            Assert.assertNotEquals(idComplement, idSet);
+            Assert.assertEquals(idElementsUniverse, setService.getSetElements(idComplement));
+            setService.deleteSet(idComplement);
+        } finally {
+            setService.deleteSet(idUniverse);
+            setService.deleteSet(idSet);
+            elementService.deleteMultipleElements(idElementsUniverse);
+        }
+    }
+
+    @Test
+    public void complementTest_setEqualsUniverse_shouldReturnEmptySet() {
+        Set<Long> idElements = Sets.newHashSet(elementService.createMultipleElements(10));
+        long idUniverse = setService.createSetWithElements(idElements);
+        long idSet = setService.copySet(idUniverse);
+        try {
+            long idComplement = setClient.complement(idSet, idUniverse);
+            Assert.assertTrue(setService.isEmpty(idComplement));
+            setService.deleteSet(idComplement);
+        } finally {
+            setService.deleteSet(idUniverse);
+            setService.deleteSet(idSet);
+            elementService.deleteMultipleElements(idElements);
+        }
+    }
+
+    @Test
+    public void complementTest_universeAndSetBothEmpty_shouldReturnEmptySet() {
+        long idUniverse = setService.createEmptySet();
+        long idSet = setService.createEmptySet();
+        try {
+            long idComplement = setClient.complement(idSet, idUniverse);
+            Assert.assertNotEquals(idComplement, idUniverse);
+            Assert.assertNotEquals(idComplement, idSet);
+            Assert.assertTrue(setService.isEmpty(idComplement));
+            setService.deleteSet(idComplement);
+        } finally {
+            setService.deleteSet(idUniverse);
+            setService.deleteSet(idSet);
+        }
+    }
+
+    @Test
+    public void complementTest_setIsNotASubsetOfUniverse_shouldReturn400() {
+        List<Long> idAllElements = elementService.createMultipleElements(10);
+        long idSet = setService.createSetWithElements(Sets.newHashSet(idAllElements.subList(0, 7)));
+        long idUniverse = setService.createSetWithElements(
+            Sets.newHashSet(idAllElements.subList(4, idAllElements.size()))
+        );
+        try {
+            setClient.complement(idSet, idUniverse);
+            Assert.fail();
+        } catch(FeignException e) {
+            Assert.assertEquals(400, e.status());
+            Assert.assertTrue(
+                "Response body [" + e.contentUTF8() + "] should contain the id of the set [" + idSet + "]",
+                e.contentUTF8().contains(idSet + "")
+            );
+            Assert.assertTrue(
+                "Response body [" + e.contentUTF8() + "] should contain the id of the universal set [" + idUniverse +
+                    "]",
+                e.contentUTF8().contains(idUniverse + "")
+            );
+        } finally {
+            setService.deleteSet(idSet);
+            setService.deleteSet(idUniverse);
+            elementService.deleteMultipleElements(ImmutableSet.copyOf(idAllElements));
+        }
+    }
+
+    @Test
+    public void complementTest_universeEmpty_shouldReturn400() {
+        long idUniverse = setService.createEmptySet();
+        Set<Long> idElementsSet = Sets.newHashSet(elementService.createMultipleElements(5));
+        long idSet = setService.createSetWithElements(idElementsSet);
+        try {
+            setClient.complement(idSet, idUniverse);
+            Assert.fail();
+        } catch(FeignException e) {
+            Assert.assertEquals(400, e.status());
+            Assert.assertTrue(
+                "Response body [" + e.contentUTF8() + "] should contain the id of the set [" + idSet + "]",
+                e.contentUTF8().contains(idSet + "")
+            );
+            Assert.assertTrue(
+                "Response body [" + e.contentUTF8() + "] should contain the id of the universal set [" + idUniverse +
+                    "]",
+                e.contentUTF8().contains(idUniverse + "")
+            );
+        } finally {
+            setService.deleteSet(idSet);
+            setService.deleteSet(idUniverse);
+            elementService.deleteMultipleElements(idElementsSet);
+        }
+    }
+
+    @Test
+    public void complementTest_universeDoesNotExist_shouldReturn404() {
+        long idUniverse = setService.createSet();
+        setService.deleteSet(idUniverse);
+        long idSet = setService.createSet();
+        try {
+            setClient.complement(idSet, idUniverse);
+            Assert.fail();
+        } catch(FeignException e) {
+            Assert.assertEquals(404, e.status());
+            Assert.assertTrue(
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idUniverse +
+                    "]",
+                e.contentUTF8().contains(idUniverse + "")
+            );
+        } finally {
+            setService.deleteSet(idSet);
+        }
+    }
+
+    @Test
+    public void complementTest_setDoesNotExist_shouldReturn404() {
+        long idUniverse = setService.createSet();
+        long idSet = setService.createSet();
+        setService.deleteSet(idSet);
+        try {
+            setClient.complement(idSet, idUniverse);
+            Assert.fail();
+        } catch(FeignException e) {
+            Assert.assertEquals(404, e.status());
+            Assert.assertTrue(
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSet + "]",
+                e.contentUTF8().contains(idSet + "")
+            );
+        } finally {
+            setService.deleteSet(idUniverse);
         }
     }
 
@@ -1815,7 +2486,7 @@ public class SetTests {
         } catch(FeignException e) {
             Assert.assertEquals(404, e.status());
             Assert.assertTrue(
-        "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSetA + "]",
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSetA + "]",
                 e.contentUTF8().contains(idSetA + "")
             );
         } finally {
@@ -1834,7 +2505,7 @@ public class SetTests {
         } catch(FeignException e) {
             Assert.assertEquals(404, e.status());
             Assert.assertTrue(
-        "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSetB + "]",
+                "Response body [" + e.contentUTF8() + "] should contain the id of the nonexistent Set [" + idSetB + "]",
                 e.contentUTF8().contains(idSetB + "")
             );
         } finally {

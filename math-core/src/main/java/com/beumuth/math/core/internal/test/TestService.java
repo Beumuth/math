@@ -16,11 +16,19 @@ public class TestService {
     @Autowired
     private JUnitCore jUnitCore;
 
-    public Result runAllTests() {
+    public RunTestsResponse runAllTests() {
         ApplicationMode startMode = applicationService.getApplicationMode();
         applicationService.setApplicationMode(ApplicationMode.TEST);
         Result result = jUnitCore.run(MathTestSuite.class);
         applicationService.setApplicationMode(startMode);
-        return result;
+        return RunTestsResponse.fromResult(result);
+    }
+
+    public RunTestsResponse runTestsInClass(Class testClass) {
+        ApplicationMode startMode = applicationService.getApplicationMode();
+        applicationService.setApplicationMode(ApplicationMode.TEST);
+        Result result = jUnitCore.run(testClass);
+        applicationService.setApplicationMode(startMode);
+        return RunTestsResponse.fromResult(result);
     }
 }

@@ -191,8 +191,8 @@ public class ApplicationTests {
             ApplicationConfiguration configuration = ApplicationConfiguration.copy(startingConfiguration);
             List<EnvironmentConfiguration> environmentList = Lists.newArrayList(configuration.environments);
             environmentList.get(0).baseUrl = null;
-            configuration.environments = Sets.newHashSet(environmentList);
-            client.setApplicationConiguration(configuration);
+            configuration.environments = Sets.newHashSet(environmentList);client.setApplicationConiguration(configuration);
+
         } catch(FeignException e){
             Assert.assertEquals(400, e.status());
             Assert.assertTrue(

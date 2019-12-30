@@ -1,5 +1,6 @@
-package com.beumuth.math.core.internal;
+package com.beumuth.math.core;
 
+import com.beumuth.math.core.MathApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 
