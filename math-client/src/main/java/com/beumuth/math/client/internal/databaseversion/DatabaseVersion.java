@@ -5,29 +5,14 @@ import org.joda.time.DateTime;
 
 @AllArgsConstructor
 @NoArgsConstructor
+@Getter
+@Setter
 @EqualsAndHashCode(of="id")
 public class DatabaseVersion {
-    @Getter
-    @Setter
     private long id;
-
-    @Getter
-    @Setter
     private int majorVersion;
-
-    @Getter
-    @Setter
     private int minorVersion;
-
-    @Getter
-    @Setter
     private int patchVersion;
-
-    @Getter
-    @Setter
     private DateTime datetimeCreated;
-
-    @Getter
-    @Setter
     private String description;
 }

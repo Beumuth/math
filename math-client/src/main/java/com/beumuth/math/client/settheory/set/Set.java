@@ -4,13 +4,10 @@ import lombok.*;
 
 @AllArgsConstructor
 @NoArgsConstructor
+@Getter
+@Setter
 @EqualsAndHashCode(of="id")
 public class Set {
-    @Getter
-    @Setter
     private long id;
-
-    @Getter
-    @Setter
     private long idElement;
 }

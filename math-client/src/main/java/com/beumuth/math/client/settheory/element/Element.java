@@ -4,9 +4,9 @@ import lombok.*;
 
 @AllArgsConstructor
 @NoArgsConstructor
+@Getter
+@Setter
 @EqualsAndHashCode(of="id")
 public class Element {
-    @Getter
-    @Setter
     private long id;
 }
