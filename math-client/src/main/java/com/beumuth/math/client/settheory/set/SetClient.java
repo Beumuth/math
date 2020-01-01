@@ -18,7 +18,7 @@ public interface SetClient extends MathClient {
     long createSet();
 
     @RequestLine("POST api/sets/set/withElements")
-    long createSetWithElements(java.util.Set<Long> idElements);
+    long createSetWithElements(java.util.Set<Long> idObjects);
 
     @RequestLine("POST api/sets/set/{id}/copy")
     long copySet(@Param("id") long id);
@@ -26,20 +26,20 @@ public interface SetClient extends MathClient {
     @RequestLine("DELETE api/sets/set/{id}")
     void deleteSet(@Param("id") long id);
 
-    @RequestLine("GET api/sets/set/{idSet}/containsElement/{idElement}")
-    boolean doesSetContainElement(@Param("idSet") long idSet, @Param("idElement") long idElement);
+    @RequestLine("GET api/sets/set/{idSet}/contains/{idObject}")
+    boolean doesSetContainObject(@Param("idSet") long idSet, @Param("idObject") long idObject);
 
-    @RequestLine("GET api/sets/set/{idSet}/containsElements?idElements={idElements}")
-    boolean doesSetContainElements(@Param("idSet") long idSet, @Param("idElements") java.util.Set<Long> idElements);
+    @RequestLine("GET api/sets/set/{idSet}/contains?idObjects={idObjects}")
+    boolean doesSetContainObjects(@Param("idSet") long idSet, @Param("idObjects") java.util.Set<Long> idObjects);
 
-    @RequestLine("PUT api/sets/set/{idSet}/element/{idElement}")
-    void addElementToSet(@Param("idSet") long idSet, @Param("idElement") long idElement);
+    @RequestLine("PUT api/sets/set/{idSet}/element/{idObject}")
+    void addObjectToSet(@Param("idSet") long idSet, @Param("idObject") long idObject);
 
     @RequestLine("POST api/sets/set/{idSet}/element")
-    long createAndAddElementToSet(@Param("idSet") long idSet);
+    long createAndAddObjectToSet(@Param("idSet") long idSet);
 
-    @RequestLine("DELETE api/sets/set/{idSet}/element/{idElement}")
-    void removeElementFromSet(@Param("idSet") long idSet, @Param("idElement") long idElement);
+    @RequestLine("DELETE api/sets/set/{idSet}/element/{idObject}")
+    void removeElementFromSet(@Param("idSet") long idSet, @Param("idObject") long idElement);
 
     @RequestLine("GET api/sets/set/{idSetA}/equals/{idSetB}")
     boolean areEqual(@Param("idSetA") long idSetA, @Param("idSetB") long idSetB);

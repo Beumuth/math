@@ -3,9 +3,9 @@ package com.beumuth.math.core.settheory.set;
 import com.beumuth.math.client.settheory.set.Set;
 import com.beumuth.math.core.internal.database.MathBeanPropertyRowMapper;
 import com.beumuth.math.core.internal.database.DatabaseService;
+import com.beumuth.math.core.settheory.object.ObjectService;
+import com.beumuth.math.core.settheory.element.CreateElementRequest;
 import com.beumuth.math.core.settheory.element.ElementService;
-import com.beumuth.math.core.settheory.setelement.CreateSetElementRequest;
-import com.beumuth.math.core.settheory.setelement.SetElementService;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,10 +26,10 @@ public class SetService {
     private DatabaseService databaseService;
 
     @Autowired
-    private SetElementService setElementService;
+    private ElementService elementService;
 
     @Autowired
-    private ElementService elementService;
+    private ObjectService objectService;
 
     public boolean doesSetExist(long id) {
         try {
@@ -51,7 +51,7 @@ public class SetService {
                 databaseService
                     .getNamedParameterJdbcTemplate()
                     .queryForObject(
-                    "SELECT id, idElement FROM Sset WHERE id=:id",
+                    "SELECT id, idObject FROM Sset WHERE id=:id",
                         ImmutableMap.of("id", id),
                         ROW_MAPPER
                     )
@@ -69,9 +69,7 @@ public class SetService {
                     .getNamedParameterJdbcTemplate()
                     .queryForList(
                         "SELECT id FROM Sset WHERE id IN (:idSets)",
-                        ImmutableMap.of(
-                        "idSets", idSets
-                        ),
+                        ImmutableMap.of("idSets", idSets),
                         Long.class
                     )
             )
@@ -84,7 +82,7 @@ public class SetService {
                 databaseService
                     .getNamedParameterJdbcTemplate()
                     .queryForList(
-                        "SELECT idElement FROM SetElement WHERE idSet=:idSet",
+                        "SELECT idObject FROM Element WHERE idSet=:idSet",
                         ImmutableMap.of("idSet", idSet),
                         Long.class
                     )
@@ -99,10 +97,10 @@ public class SetService {
         databaseService
             .getNamedParameterJdbcTemplate()
             .update(
-                "INSERT INTO Sset (idElement) VALUES (:idElement)",
+                "INSERT INTO Sset (idObject) VALUES (:idObject)",
                     new MapSqlParameterSource(
                         ImmutableMap.of(
-                            "idElement", elementService.createElement()
+                            "idObject", objectService.createObject()
                         )
                     ),
                     keyHolder
@@ -111,12 +109,12 @@ public class SetService {
     }
 
     public void deleteSet(long id) {
-        //Delete both the Set and the Set's Element at the same time - cascading delete.
+        //Delete both the Set and the Set's Object at the same time - cascading delete.
         databaseService
             .getNamedParameterJdbcTemplate()
             .update(
-            "DELETE FROM Element WHERE id=( " +
-                    "SELECT idElement FROM Sset WHERE id=:id" +
+                "DELETE FROM Object WHERE id = ( " +
+                    "SELECT idObject FROM Sset WHERE id=:id" +
                 ")",
                 ImmutableMap.of("id", id)
             );
@@ -131,20 +129,20 @@ public class SetService {
     }
 
     /**
-     * Create a Set with the given Elements.
-     * @param idElements The ids of the Elements that are in the Set.
+     * Create a Set and add the given Objects.
+     * @param idObjects The ids of the Objects that are to become Elements in the Set.
      * @return The id of the created Set.
      */
-    public long createSetWithElements(java.util.Set<Long> idElements) {
-        if(idElements.isEmpty()) {
+    public long createSetWithElements(java.util.Set<Long> idObjects) {
+        if(idObjects.isEmpty()) {
             return createEmptySet();
         }
 
         long idSet = createSet();
-        setElementService.createSetElements(
-            idElements
+        elementService.createElements(
+            idObjects
                 .stream()
-                .map(idElement -> new CreateSetElementRequest(idSet, idElement))
+                .map(idElement -> new CreateElementRequest(idSet, idElement))
                 .collect(Collectors.toSet())
         );
         return idSet;
@@ -162,20 +160,20 @@ public class SetService {
     }
 
     /**
-     * Determines if a Set contains an Element
+     * Determines if a Set contains an Object
      * @param idSet
-     * @param idElement
+     * @param idObject
      * @return
      */
-    public boolean containsElement(long idSet, long idElement) {
+    public boolean containsObject(long idSet, long idObject) {
         try {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                "SELECT 1 FROM SetElement WHERE idSet=:idSet AND idElement=:idElement",
+                "SELECT 1 FROM Element WHERE idSet=:idSet AND idObject=:idObject",
                     ImmutableMap.of(
-                    "idSet", idSet,
-                    "idElement", idElement
+                        "idSet", idSet,
+                        "idObject", idObject
                     ),
                     Boolean.class
                 );
@@ -187,67 +185,67 @@ public class SetService {
     /**
      * Determine if a Set contains all elements.
      * @param idSet
-     * @param idElements
+     * @param idObjects
      * @return
      */
-    public boolean containsAllElements(long idSet, java.util.Set<Long> idElements) {
+    public boolean containsAllObjects(long idSet, java.util.Set<Long> idObjects) {
         return databaseService
             .getNamedParameterJdbcTemplate()
             .queryForObject(
-                "SELECT COUNT(idElement)=:numElements " +
-                    "FROM SetElement " +
+                "SELECT COUNT(idObject)=:numObjects " +
+                    "FROM Element " +
                     "WHERE " +
                         "idSet=:idSet AND " +
-                        "idElement IN (:idElements)",
+                        "idObject IN (:idObjects)",
                     ImmutableMap.of(
                         "idSet", idSet,
-                        "idElements", idElements,
-                        "numElements", idElements.size()
+                        "idObjects", idObjects,
+                        "numObjects", idObjects.size()
                     ),
                 Boolean.class
             );
     }
 
     /**
-     * Add an Element to a Set
+     * Add an Object to a Set
      * @param idSet
-     * @param idElement
+     * @param idObject
      */
-    public void addElementToSet(long idSet, long idElement) {
-        //Do nothing if the set already contains the element
-        if(containsElement(idSet, idElement)) {
+    public void addObjectToSet(long idSet, long idObject) {
+        //Do nothing if the set already contains the object
+        if(containsObject(idSet, idObject)) {
             return;
         }
 
-        setElementService.createSetElement(
-            new CreateSetElementRequest(idSet, idElement)
+        elementService.createElement(
+            new CreateElementRequest(idSet, idObject)
         );
     }
 
     /**
-     * Create an Element and add it to a Set
+     * Create an Object and add it to a Set
      * @param idSet
-     * @return The id of the created Element
+     * @return The id of the created Object
      */
-    public long createAndAddElement(long idSet) {
-        long idElement = elementService.createElement();
-        addElementToSet(idSet, idElement);
-        return idElement;
+    public long createAndAddObject(long idSet) {
+        long idObject = objectService.createObject();
+        addObjectToSet(idSet, idObject);
+        return idObject;
     }
 
     /**
-     * Remove an Element from a Set
+     * Remove an Object from a Set
      * @param idSet
-     * @param idElement
+     * @param idObject
      */
-    public void removeElementFromSet(long idSet, long idElement) {
+    public void removeElementFromSet(long idSet, long idObject) {
         databaseService
             .getNamedParameterJdbcTemplate()
             .update(
-            "DELETE FROM SetElement WHERE idSet=:idSet AND idElement=:idElement",
+            "DELETE FROM Element WHERE idSet=:idSet AND idObject=:idObject",
                 ImmutableMap.of(
-                "idSet", idSet,
-                "idElement", idElement
+                    "idSet", idSet,
+                    "idObject", idObject
                 )
             );
     }
@@ -264,28 +262,28 @@ public class SetService {
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
                     "SELECT " +
-                            "CASE " +
-                                "WHEN " +
-                                    "countSetAElements = countSetBElements AND " +
-                                    "countSetAElements = countUnionElements " +
-                                "THEN 1 " +
-                                "ELSE 0 " +
-                                "END " +
-                        "FROM (" +
-                            "SELECT " +
-                                "(SELECT COUNT(1) FROM SetElement WHERE idSet=:idSetA) AS countSetAElements, " +
-                                "(SELECT COUNT(1) FROM SetElement WHERE idSet=:idSetB) AS countSetBElements, " +
-                                "(" +
-                                    "SELECT COUNT(1) FROM (" +
-                                        "SELECT DISTINCT idElement " +
-                                        "FROM SetElement " +
-                                        "WHERE idSet=:idSetA OR idSet=:idSetB" +
-                                    ") AS unioned" +
-                                ") AS countUnionElements" +
-                        ") AS isEqual",
+                        "CASE " +
+                            "WHEN " +
+                                "countSetAElements = countSetBElements AND " +
+                                "countSetAElements = countUnionElements " +
+                            "THEN 1 " +
+                            "ELSE 0 " +
+                            "END " +
+                    "FROM (" +
+                        "SELECT " +
+                            "(SELECT COUNT(1) FROM Element WHERE idSet=:idSetA) AS countSetAElements, " +
+                            "(SELECT COUNT(1) FROM Element WHERE idSet=:idSetB) AS countSetBElements, " +
+                            "(" +
+                                "SELECT COUNT(1) FROM (" +
+                                    "SELECT DISTINCT idObject " +
+                                    "FROM Element " +
+                                    "WHERE idSet=:idSetA OR idSet=:idSetB" +
+                                ") AS unioned" +
+                            ") AS countUnionElements" +
+                    ") AS isEqual",
                     ImmutableMap.of(
-                    "idSetA", idSetA,
-                    "idSetB", idSetB
+                        "idSetA", idSetA,
+                        "idSetB", idSetB
                     ),
                     Boolean.class
                 );
@@ -305,17 +303,17 @@ public class SetService {
             .getNamedParameterJdbcTemplate()
             .queryForObject(
             "SELECT COUNT(1)=0 FROM ( " +
-                    "SELECT idElement " +
-                    "FROM SetElement " +
+                    "SELECT idObject " +
+                    "FROM Element " +
                     "WHERE " +
                         "idSet=:idPossibleSubset AND " +
-                        "idElement NOT IN (" +
-                            "SELECT idElement FROM SetElement WHERE idSet=:idPossibleSuperset" +
+                        "idObject NOT IN (" +
+                            "SELECT idObject FROM Element WHERE idSet=:idPossibleSuperset" +
                         ")" +
                 ") AS elementsInSubsetNotInSuperset",
                 ImmutableMap.of(
-                "idPossibleSuperset", idPossibleSuperset,
-                "idPossibleSubset", idPossibleSubset
+                    "idPossibleSuperset", idPossibleSuperset,
+                    "idPossibleSubset", idPossibleSubset
                 ),
                 Boolean.class
             );
@@ -334,23 +332,23 @@ public class SetService {
                 "SELECT " +
                     "COUNT(1)=0 " +
                 "FROM (" +
-                    "SELECT DISTINCT idElement FROM ( " +
+                    "SELECT DISTINCT idObject FROM ( " +
                         "SELECT " +
-                            "idElement " +
+                            "idObject " +
                         "FROM " +
-                            "SetElement " +
+                            "Element " +
                         "WHERE " +
                             "idSet=:idSetA" +
                         ") AS setAElements " +
                     "INNER JOIN (" +
                         "SELECT " +
-                            "idElement " +
+                            "idObject " +
                         "FROM " +
-                            "SetElement " +
+                            "Element " +
                         "WHERE " +
                             "idSet=:idSetB" +
                     ") AS setBElements " +
-                        "USING(idElement) " +
+                        "USING(idObject) " +
                 ") AS elementsInIntersection",
                 ImmutableMap.of(
                     "idSetA", idSetA,
@@ -373,13 +371,13 @@ public class SetService {
                     "COUNT(1) = 0 " +
                 "FROM ( " +
                     "SELECT " +
-                        "idElement " +
+                        "idObject " +
                     "FROM " +
-                        "SetElement " +
+                        "Element " +
                     "WHERE " +
                         "idSet IN (:idSets) " +
                     "GROUP BY  " +
-                        "idElement " +
+                        "idObject " +
                     "HAVING " +
                         "COUNT(1) > 1 " +
                 ") AS idSharedElements",
@@ -396,7 +394,7 @@ public class SetService {
      * @return True if a partition, otherwise false.
      */
     public boolean isPartition(java.util.Set<Long> candidatePartition, long idSet) {
-        //Does the candidate partition only have one element?
+        //Does the candidate partition only have one object?
         if(candidatePartition.size() == 1) {
             //Yes. It is a partition iff it is equal to the Set.
             return areEqual(idSet, candidatePartition.stream().findFirst().get());
@@ -428,7 +426,7 @@ public class SetService {
         return databaseService
             .getNamedParameterJdbcTemplate()
             .queryForObject(
-            "SELECT COUNT(1) FROM SetElement WHERE idSet=:idSet",
+            "SELECT COUNT(1) FROM Element WHERE idSet=:idSet",
                 ImmutableMap.of("idSet", idSet),
                 Integer.class
             );
@@ -464,22 +462,22 @@ public class SetService {
                 databaseService
                     .getNamedParameterJdbcTemplate()
                     .queryForList(
-                    "SELECT DISTINCT idElement FROM ( " +
+                    "SELECT DISTINCT idObject FROM ( " +
                             "SELECT " +
-                                "idElement " +
+                                "idObject " +
                             "FROM " +
-                                "SetElement " +
+                                "Element " +
                             "WHERE " +
                                 "idSet=:idSetA" +
                         ") AS setAElements INNER JOIN (" +
                             "SELECT " +
-                                "idElement " +
+                                "idObject " +
                             "FROM " +
-                                "SetElement " +
+                                "Element " +
                             "WHERE " +
                                 "idSet=:idSetB" +
                         ") AS setBElements " +
-                            "USING(idElement)",
+                            "USING(idObject)",
                         ImmutableMap.of(
                             "idSetA", idSetA,
                             "idSetB", idSetB
@@ -501,10 +499,10 @@ public class SetService {
                 databaseService
                     .getNamedParameterJdbcTemplate()
                     .queryForList(
-                    "SELECT idElement " +
-                        "FROM SetElement " +
+                    "SELECT idObject " +
+                        "FROM Element " +
                         "WHERE idSet IN (:idSets) " +
-                        "GROUP BY idElement " +
+                        "GROUP BY idObject " +
                         "HAVING COUNT(1)=" + idSets.size(),
                         ImmutableMap.of("idSets", idSets),
                         Long.class
@@ -525,16 +523,16 @@ public class SetService {
                 databaseService
                     .getNamedParameterJdbcTemplate()
                     .queryForList(
-                    "SELECT " +
-                            "DISTINCT idElement " +
+                        "SELECT " +
+                            "DISTINCT idObject " +
                         "FROM " +
-                            "SetElement " +
+                            "Element " +
                         "WHERE " +
                             "idSet=:idSetA OR " +
                             "idSet=:idSetB",
                         ImmutableMap.of(
-                        "idSetA", idSetA,
-                        "idSetB", idSetB
+                            "idSetA", idSetA,
+                            "idSetB", idSetB
                         ),
                         Long.class
                     )
@@ -553,10 +551,10 @@ public class SetService {
                 databaseService
                     .getNamedParameterJdbcTemplate()
                     .queryForList(
-                    "SELECT " +
-                            "DISTINCT idElement " +
+                        "SELECT " +
+                            "DISTINCT idObject " +
                         "FROM " +
-                            "SetElement " +
+                            "Element " +
                         "WHERE " +
                             "idSet IN (:idSets) ",
                         ImmutableMap.of("idSets", idSets),
@@ -578,22 +576,25 @@ public class SetService {
                 databaseService
                     .getNamedParameterJdbcTemplate()
                     .queryForList(
-                    "SELECT DISTINCT idElement FROM ( " +
+                        "SELECT " +
+                            "DISTINCT idObject " +
+                        "FROM ( " +
                             "SELECT " +
-                                "idElement " +
+                                "idObject " +
                             "FROM " +
-                                "SetElement " +
+                                "Element " +
                             "WHERE " +
                                 "idSet=:idSetA " +
                         ") AS setAElements " +
-                        "WHERE setAElements.idElement NOT IN ( " +
-                            "SELECT " +
-                                "idElement " +
-                            "FROM " +
-                                "SetElement " +
-                            "WHERE " +
-                                "idSet=:idSetB" +
-                        ")",
+                        "WHERE " +
+                            "setAElements.idObject NOT IN ( " +
+                                "SELECT " +
+                                    "idObject " +
+                                "FROM " +
+                                    "Element " +
+                                "WHERE " +
+                                    "idSet=:idSetB " +
+                            ")",
                         ImmutableMap.of(
                             "idSetA", idSetA,
                             "idSetB", idSetB
@@ -628,14 +629,14 @@ public class SetService {
                 databaseService
                     .getNamedParameterJdbcTemplate()
                     .queryForList(
-                    "SELECT idElement " +
-                        "FROM SetElement " +
+                        "SELECT idObject " +
+                        "FROM Element " +
                         "WHERE idSet IN(:idSetA, :idSetB) " +
-                        "GROUP BY idElement " +
+                        "GROUP BY idObject " +
                         "HAVING COUNT(1)=1",
                         ImmutableMap.of(
-                        "idSetA", idSetA,
-                        "idSetB", idSetB
+                            "idSetA", idSetA,
+                            "idSetB", idSetB
                         ),
                         Long.class
                     )
@@ -649,7 +650,7 @@ public class SetService {
      * @param idSetB
      * @return The id of the new Set.
      */
-    public long cartesianProuct(long idSetA, long idSetB) {
+    public long cartesianProduct(long idSetA, long idSetB) {
         //TODO once Lists exist
         throw new UnsupportedOperationException("cartesianProduct is not yet implemented");
     }

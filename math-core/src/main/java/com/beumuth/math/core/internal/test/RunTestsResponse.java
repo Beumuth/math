@@ -29,7 +29,13 @@ public class RunTestsResponse {
         runTestsResponse.setRunTime(result.getRunTime());
         List<TestFailure> testFailures = Lists.newArrayList();
         for(Failure failure : result.getFailures()) {
-            testFailures.add(new TestFailure(failure.getDescription().getMethodName(), failure.getMessage()));
+            testFailures.add(
+                new TestFailure(
+                    failure.getDescription().getTestClass().getSimpleName(),
+                    failure.getDescription().getMethodName(),
+                    failure.getMessage()
+                )
+            );
         }
         runTestsResponse.setTestFailures(testFailures);
         return runTestsResponse;

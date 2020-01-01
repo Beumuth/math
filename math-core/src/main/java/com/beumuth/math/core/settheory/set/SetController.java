@@ -1,11 +1,10 @@
 package com.beumuth.math.core.settheory.set;
 
 import com.beumuth.math.client.settheory.set.Set;
-import com.beumuth.math.core.settheory.element.ElementService;
+import com.beumuth.math.core.settheory.object.ObjectService;
 import com.github.instantpudd.validator.ClientErrorException;
 import com.github.instantpudd.validator.ClientErrorStatusCode;
 import com.github.instantpudd.validator.Validator;
-import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,7 +19,7 @@ public class SetController {
     @Autowired
     private SetService setService;
     @Autowired
-    private ElementService elementService;
+    private ObjectService objectService;
 
     @GetMapping(path="/set/{id}/exists")
     @ResponseBody
@@ -54,7 +53,7 @@ public class SetController {
     @ResponseBody
     @ResponseStatus(HttpStatus.CREATED)
     public long createSetWithElements(@RequestBody java.util.Set<Long> idElements) throws ClientErrorException {
-        validateIfElementsExist(idElements, ClientErrorStatusCode.STATUS_400);
+        validateIfObjectsExist(idElements, ClientErrorStatusCode.STATUS_400);
         return setService.createSetWithElements(idElements);
     }
 
@@ -73,46 +72,46 @@ public class SetController {
     }
 
 
-    @GetMapping(path="/set/{idSet}/containsElement/{idElement}")
+    @GetMapping(path= "/set/{idSet}/contains/{idObject}")
     @ResponseBody
-    public boolean doesSetContainElement(
+    public boolean doesSetContainObject(
         @PathVariable(name="idSet") long idSet,
-        @PathVariable(name="idElement") long idElement
+        @PathVariable(name= "idObject") long idObject
     ) throws ClientErrorException {
         validateIfSetExists(idSet, "Set with given id [" + idSet + "] does not exist");
-        validateIfElementExists(idElement, "Element with given id [" + idElement + "] does not exist");
-        return setService.containsElement(idSet, idElement);
+        validateIfObjectExists(idObject, "Object with given id [" + idObject + "] does not exist");
+        return setService.containsObject(idSet, idObject);
     }
 
 
-    @GetMapping(path="/set/{idSet}/containsElements")
+    @GetMapping(path="/set/{idSet}/contains")
     @ResponseBody
-    public boolean doesSetContainElements(
+    public boolean doesSetContainObjects(
         @PathVariable(name="idSet") long idSet,
-        @RequestParam(name="idElements") java.util.Set<Long> idElements
+        @RequestParam(name="idObjects") java.util.Set<Long> idObjects
     ) throws ClientErrorException {
         validateIfSetExists(idSet, "Set with given id [" + idSet + "] does not exist");
-        validateIfElementsExist(idElements, ClientErrorStatusCode.NOT_FOUND);
-        return setService.containsAllElements(idSet, idElements);
+        validateIfObjectsExist(idObjects, ClientErrorStatusCode.NOT_FOUND);
+        return setService.containsAllObjects(idSet, idObjects);
     }
 
-    @PutMapping(path="/set/{idSet}/element/{idElement}")
+    @PutMapping(path="/set/{idSet}/element/{idObject}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void addElementToSet(
+    public void addObjectToSet(
         @PathVariable("idSet") long idSet,
-        @PathVariable("idElement") long idElement
+        @PathVariable("idObject") long idObject
     ) throws ClientErrorException {
         validateIfSetExists(idSet, "Set with given id [" + idSet + "] does not exist");
-        validateIfElementExists(idElement, "Element with given id [" + idElement + "] does not exist");
-        setService.addElementToSet(idSet, idElement);
+        validateIfObjectExists(idObject, "Object with given id [" + idObject + "] does not exist");
+        setService.addObjectToSet(idSet, idObject);
     }
 
     @PostMapping(path="/set/{idSet}/element")
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public long createAndAddElementToSet(@PathVariable("idSet") long idSet) throws ClientErrorException {
+    public long createAndAddObjectToSet(@PathVariable("idSet") long idSet) throws ClientErrorException {
         validateIfSetExists(idSet, "Set with given id [" + idSet + "] does not exist");
-        return setService.createAndAddElement(idSet);
+        return setService.createAndAddObject(idSet);
     }
 
     @DeleteMapping(path="/set/{idSet}/element/{idElement}")
@@ -122,7 +121,7 @@ public class SetController {
         @PathVariable("idElement") long idElement
     ) throws ClientErrorException {
         validateIfSetExists(idSet, "Set with given id [" + idSet + "] does not exist");
-        validateIfElementExists(idElement, "Element with given id [" + idElement + "] does not exist");
+        validateIfObjectExists(idElement, "Object with given id [" + idElement + "] does not exist");
         setService.removeElementFromSet(idSet, idElement);
     }
 
@@ -299,21 +298,21 @@ public class SetController {
             ).execute();
     }
 
-    private void validateIfElementExists(long idElement, String errorMessage) throws ClientErrorException {
+    private void validateIfObjectExists(long idObject, String errorMessage) throws ClientErrorException {
         Validator
             .returnStatus(ClientErrorStatusCode.NOT_FOUND)
-            .ifFalse(elementService.doesElementExist(idElement))
+            .ifFalse(objectService.doesObjectExist(idObject))
             .withErrorMessage(errorMessage)
             .execute();
     }
 
-    private void validateIfElementsExist(java.util.Set<Long> idElements, ClientErrorStatusCode statusCode)
+    private void validateIfObjectsExist(java.util.Set<Long> idObjects, ClientErrorStatusCode statusCode)
         throws ClientErrorException {
-        java.util.Set<Long> idElementsThatDoNotExist = elementService.getElementsThatDoNotExist(idElements);
+        java.util.Set<Long> idObjectsThatDoNotExist = objectService.getObjectsThatDoNotExist(idObjects);
         Validator
             .returnStatus(statusCode)
-            .ifFalse(idElementsThatDoNotExist.isEmpty())
-            .withErrorMessage("The following elements do not exist: " + StringUtils.join(idElementsThatDoNotExist))
+            .ifFalse(idObjectsThatDoNotExist.isEmpty())
+            .withErrorMessage("The following objects do not exist: " + StringUtils.join(idObjectsThatDoNotExist))
             .execute();
     }
 }

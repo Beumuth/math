@@ -10,6 +10,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class TestFailure {
+    private String testClass;
     private String testMethod;
     private String message;
 }

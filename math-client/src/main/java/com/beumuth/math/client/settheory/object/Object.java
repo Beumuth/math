@@ -1,4 +1,4 @@
-package com.beumuth.math.client.settheory.element;
+package com.beumuth.math.client.settheory.object;
 
 import lombok.*;
 
@@ -7,6 +7,6 @@ import lombok.*;
 @Getter
 @Setter
 @EqualsAndHashCode(of="id")
-public class Element {
+public class Object {
     private long id;
 }

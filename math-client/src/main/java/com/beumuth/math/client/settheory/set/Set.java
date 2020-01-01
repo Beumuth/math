@@ -9,5 +9,5 @@ import lombok.*;
 @EqualsAndHashCode(of="id")
 public class Set {
     private long id;
-    private long idElement;
+    private long idObject;
 }

@@ -1,10 +1,8 @@
 package com.beumuth.math.core.settheory.element;
 
-import com.beumuth.math.client.settheory.element.Element;
 import com.beumuth.math.core.internal.database.MathBeanPropertyRowMapper;
 import com.beumuth.math.core.internal.database.DatabaseService;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -12,14 +10,12 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Service;
 
-import java.math.BigInteger;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 @Service
 public class ElementService {
+
     private static final MathBeanPropertyRowMapper<Element> ROW_MAPPER =
         MathBeanPropertyRowMapper.newInstance(Element.class);
 
@@ -31,35 +27,30 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                "SELECT 1 FROM Element WHERE id=:id",
+                    "SELECT 1 FROM Element WHERE id=:id",
                     ImmutableMap.of("id", id),
                     Boolean.class
                 );
-
         } catch(EmptyResultDataAccessException e) {
             return false;
         }
     }
 
-    public Set<Long> getElementsThatDoNotExist(Set<Long> idElements) {
-        if(idElements.isEmpty()) {
-            return idElements;
+    public boolean doesElementExistWithNaturalKey(long idSet, long idObject) {
+        try {
+            return databaseService
+                .getNamedParameterJdbcTemplate()
+                .queryForObject(
+                    "SELECT 1 FROM Element WHERE idSet=:idSet AND idObject=:idObject",
+                    ImmutableMap.of(
+                    "idSet", idSet,
+                    "idObject", idObject
+                    ),
+                    Boolean.class
+                );
+        } catch(EmptyResultDataAccessException e) {
+            return false;
         }
-
-        return Sets.difference(
-            idElements,
-            Sets.newHashSet(
-                databaseService
-                    .getNamedParameterJdbcTemplate()
-                    .queryForList(
-                    "SELECT id FROM Element WHERE id IN (:idElements)",
-                        ImmutableMap.of(
-                        "idElements", idElements
-                        ),
-                        Long.class
-                    )
-            )
-        );
     }
 
     public Optional<Element> getElement(long id) {
@@ -68,7 +59,14 @@ public class ElementService {
                 databaseService
                     .getNamedParameterJdbcTemplate()
                     .queryForObject(
-                    "SELECT id FROM Element WHERE id=:id",
+                    "SELECT " +
+                            "id, " +
+                            "idSet, " +
+                            "idObject " +
+                        "FROM " +
+                            "Element " +
+                        "WHERE " +
+                            "id = :id",
                         ImmutableMap.of("id", id),
                         ROW_MAPPER
                     )
@@ -78,46 +76,56 @@ public class ElementService {
         }
     }
 
-    public long createElement() {
+    public Optional<Element> getElementByNaturalKey(long idSet, long idObject) {
+        try {
+            return Optional.of(
+                databaseService
+                    .getNamedParameterJdbcTemplate()
+                    .queryForObject(
+                    "SELECT " +
+                            "id, " +
+                            "idSet, " +
+                            "idObject " +
+                        "FROM " +
+                            "Element " +
+                        "WHERE " +
+                            "idSet = :idSet AND " +
+                            "idObject = :idObject",
+                        ImmutableMap.of(
+                        "idSet", idSet,
+                        "idObject", idObject
+                        ),
+                        ROW_MAPPER
+                    )
+            );
+        } catch(EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
+    }
+
+    public long createElement(CreateElementRequest request) {
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
         databaseService
             .getNamedParameterJdbcTemplate()
             .update(
-                "INSERT INTO Element (id) VALUES (null)",
-                new MapSqlParameterSource(),
+            "INSERT INTO Element (idSet, idObject) VALUES (:idSet, :idObject)",
+                new MapSqlParameterSource(
+                    ImmutableMap.of(
+                    "idSet", request.getIdSet(),
+                    "idObject", request.getIdObject()
+                    )
+                ),
                 keyHolder
             );
-
         return keyHolder.getKey().longValue();
     }
 
-    public List<Long> createMultipleElements(int number) {
-
-        GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
-
-        String values = "(null),".repeat(number);
-        values = values.substring(0, values.length()-1);
-
-        databaseService
-            .getNamedParameterJdbcTemplate()
-            .update(
-                "INSERT INTO Element (id) VALUES " + values,
-                new MapSqlParameterSource(),
-                keyHolder
-            );
-
-        List<Map<String, Object>> keyList = keyHolder.getKeyList();
-        List<Long> ids = Lists.newArrayList();
-        for(var i = 0; i < keyList.size(); ++i) {
-            ids.add(
-                ((BigInteger)
-                    keyList
-                        .get(i)
-                        .get("GENERATED_KEY")
-                ).longValue()
-            );
-        }
-        return ids;
+    public Set<Long> createElements(Set<CreateElementRequest> requests) {
+       Set<Long> ids = Sets.newHashSet();
+       for(CreateElementRequest request : requests) {
+           ids.add(createElement(request));
+       }
+       return ids;
     }
 
     public void deleteElement(long id) {
@@ -126,15 +134,6 @@ public class ElementService {
             .update(
             "DELETE FROM Element WHERE id=:id",
                 ImmutableMap.of("id", id)
-            );
-    }
-
-    public void deleteMultipleElements(Set<Long> ids) {
-        databaseService
-            .getNamedParameterJdbcTemplate()
-            .update(
-                "DELETE FROM Element WHERE id IN (:ids)",
-                ImmutableMap.of("ids", ids)
             );
     }
 }
