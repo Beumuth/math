@@ -9,20 +9,20 @@ import java.util.Set;
 
 public interface ObjectClient extends MathClient {
     @RequestLine("GET api/objects/object/{id}/exists")
-    boolean doesObjectExist(@Param("id") long id);
+    boolean exists(@Param("id") long id);
 
     @RequestLine("GET api/objects/object/{id}")
-    Object getObject(@Param("id") long id);
+    Object get(@Param("id") long id);
 
     @RequestLine("POST api/objects/object")
-    long createObject();
+    long create();
 
     @RequestLine("POST api/objects")
-    List<Long> createMultipleObjects(int numToCreate);
+    List<Long> createMultiple(int numToCreate);
 
     @RequestLine("DELETE api/objects/object/{id}")
-    void deleteObject(@Param("id") long id);
+    void delete(@Param("id") long id);
 
     @RequestLine("DELETE api/objects")
-    void deleteMultipleObjects(Set<Long> ids);
+    void deleteAll(Set<Long> ids);
 }

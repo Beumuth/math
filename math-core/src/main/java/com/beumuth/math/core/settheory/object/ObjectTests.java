@@ -37,13 +37,13 @@ public class ObjectTests {
         long id = objectService.createObject();
 
         //It should exist
-        Assert.assertTrue(objectClient.doesObjectExist(id));
+        Assert.assertTrue(objectClient.exists(id));
 
         //Delete the object
         objectService.deleteObject(id);
 
         //It should not exist
-        Assert.assertFalse(objectClient.doesObjectExist(id));
+        Assert.assertFalse(objectClient.exists(id));
     }
 
     @Test
@@ -53,7 +53,7 @@ public class ObjectTests {
 
         //It should be gettable
         try {
-            objectClient.getObject(id);
+            objectClient.get(id);
         } catch(FeignException e) {
             Assert.fail(); //Oh no
         }
@@ -63,7 +63,7 @@ public class ObjectTests {
 
         //It should return a 404
         try {
-            objectClient.getObject(id);
+            objectClient.get(id);
             Assert.fail(); //Oh no
         } catch(FeignException e) {
             Assert.assertEquals(404, e.status());
@@ -74,14 +74,14 @@ public class ObjectTests {
     public void createObjectTest() {
         //Create an object, the clean it up
         objectService.deleteObject(
-            objectClient.createObject()
+            objectClient.create()
         );
     }
 
     @Test
     public void createMultipleObjectsTest() {
         //Create multiple objects
-        List<Long> idObjects = objectClient.createMultipleObjects(10);
+        List<Long> idObjects = objectClient.createMultiple(10);
 
         Assert.assertEquals(10, idObjects.size());
 
@@ -95,7 +95,7 @@ public class ObjectTests {
         long idObject = objectService.createObject();
 
         //Delete it
-        objectClient.deleteObject(idObject);
+        objectClient.delete(idObject);
 
         //Ensure that it doesnt exist
         Assert.assertFalse(objectService.doesObjectExist(idObject));
@@ -107,7 +107,7 @@ public class ObjectTests {
         Set<Long> idObjects = Sets.newHashSet(objectService.createMultipleObjects(10));
 
         //Delete them
-        objectClient.deleteMultipleObjects(idObjects);
+        objectClient.deleteAll(idObjects);
 
         //Ensure that they don't exist
         for(Long idObject : idObjects) {

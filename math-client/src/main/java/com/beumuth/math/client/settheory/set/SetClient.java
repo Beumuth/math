@@ -6,40 +6,40 @@ import feign.RequestLine;
 
 public interface SetClient extends MathClient {
     @RequestLine("GET api/sets/set/{id}/exists")
-    boolean doesSetExist(@Param("id") long id);
+    boolean exists(@Param("id") long id);
 
     @RequestLine("GET api/sets/set/{id}")
-    Set getSet(@Param("id") long id);
+    Set get(@Param("id") long id);
 
     @RequestLine("GET api/sets/set/{id}/elements")
-    java.util.Set<Long> getSetElements(@Param("id") long id);
+    java.util.Set<Long> getElements(@Param("id") long id);
 
     @RequestLine("POST api/sets/set")
-    long createSet();
+    long create();
 
     @RequestLine("POST api/sets/set/withElements")
-    long createSetWithElements(java.util.Set<Long> idObjects);
+    long createWithElements(java.util.Set<Long> idObjects);
 
     @RequestLine("POST api/sets/set/{id}/copy")
-    long copySet(@Param("id") long id);
+    long copy(@Param("id") long id);
 
     @RequestLine("DELETE api/sets/set/{id}")
-    void deleteSet(@Param("id") long id);
+    void delete(@Param("id") long id);
 
     @RequestLine("GET api/sets/set/{idSet}/contains/{idObject}")
-    boolean doesSetContainObject(@Param("idSet") long idSet, @Param("idObject") long idObject);
+    boolean contains(@Param("idSet") long idSet, @Param("idObject") long idObject);
 
     @RequestLine("GET api/sets/set/{idSet}/contains?idObjects={idObjects}")
-    boolean doesSetContainObjects(@Param("idSet") long idSet, @Param("idObjects") java.util.Set<Long> idObjects);
+    boolean containsAll(@Param("idSet") long idSet, @Param("idObjects") java.util.Set<Long> idObjects);
 
     @RequestLine("PUT api/sets/set/{idSet}/element/{idObject}")
-    void addObjectToSet(@Param("idSet") long idSet, @Param("idObject") long idObject);
+    void addElement(@Param("idSet") long idSet, @Param("idObject") long idObject);
 
     @RequestLine("POST api/sets/set/{idSet}/element")
-    long createAndAddObjectToSet(@Param("idSet") long idSet);
+    long createAndAddElement(@Param("idSet") long idSet);
 
     @RequestLine("DELETE api/sets/set/{idSet}/element/{idObject}")
-    void removeElementFromSet(@Param("idSet") long idSet, @Param("idObject") long idElement);
+    void removeElement(@Param("idSet") long idSet, @Param("idObject") long idElement);
 
     @RequestLine("GET api/sets/set/{idSetA}/equals/{idSetB}")
     boolean areEqual(@Param("idSetA") long idSetA, @Param("idSetB") long idSetB);
@@ -51,7 +51,7 @@ public interface SetClient extends MathClient {
     boolean areDisjoint(@Param("idSetA") long idSetA, @Param("idSetB") long idSetB);
 
     @RequestLine("GET api/sets/areDisjoint?idSets={idSets}")
-    boolean areDisjointMultiple(@Param("idSets") java.util.Set<Long> idSets);
+    boolean areDisjoint(@Param("idSets") java.util.Set<Long> idSets);
 
     @RequestLine("GET api/sets/set/{idSet}/isPartition?candidatePartition={candidatePartition}")
     boolean isPartition(
@@ -60,22 +60,22 @@ public interface SetClient extends MathClient {
     );
 
     @RequestLine("GET api/sets/set/{id}/size")
-    int setCardinality(@Param("id") long id);
+    int cardinality(@Param("id") long id);
 
     @RequestLine("GET api/sets/set/{id}/isEmpty")
-    boolean isEmptySet(@Param("id") long id);
+    boolean isEmpty(@Param("id") long id);
 
     @RequestLine("POST api/sets/set/{idSetA}/intersect/{idSetB}")
     long intersection(@Param("idSetA") long idSetA, @Param("idSetB") long idSetB);
 
     @RequestLine("POST api/sets/intersect")
-    long intersectMultipleSets(java.util.Set<Long> idSets);
+    long intersection(java.util.Set<Long> idSets);
 
     @RequestLine("POST api/sets/set/{idSetA}/union/{idSetB}")
     long union(@Param("idSetA") long idSetA, @Param("idSetB") long idSetB);
 
     @RequestLine("POST api/sets/union")
-    long unionMultipleSets(java.util.Set<Long> idSets);
+    long union(java.util.Set<Long> idSets);
 
     @RequestLine("POST api/sets/set/{idSetA}/subtract/{idSetB}")
     long difference(@Param("idSetA") long idSetA, @Param("idSetB") long idSetB);

@@ -121,7 +121,7 @@ public class SetService {
     }
 
     /**
-     * Synonym for createSet
+     * Synonym for create
      * @return The id of the created Set
      */
     public long createEmptySet() {
