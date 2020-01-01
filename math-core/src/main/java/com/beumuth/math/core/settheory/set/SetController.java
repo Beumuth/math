@@ -294,7 +294,7 @@ public class SetController {
             .returnStatus(ClientErrorStatusCode.STATUS_400)
             .ifFalse(idSetsThatDoNotExist.isEmpty())
             .withErrorMessage(
-                "The Sets with the following ids do not exist: " + StringUtils.join(idSetsThatDoNotExist)
+                "The SetClient with the following ids do not exist: " + StringUtils.join(idSetsThatDoNotExist)
             ).execute();
     }
 
