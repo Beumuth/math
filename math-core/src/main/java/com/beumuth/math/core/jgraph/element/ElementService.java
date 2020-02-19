@@ -13,6 +13,7 @@ import com.google.common.collect.Sets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -26,7 +27,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-@Service
+@Service("JGraphElementService")
 public class ElementService {
     private static final MathBeanPropertyRowMapper<Element> ROW_MAPPER =
         MathBeanPropertyRowMapper.newInstance(Element.class);
@@ -105,7 +106,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                    "SELECT a=id AND b=id FROM Element WHERE id=:idElement",
+                    "SELECT a=id AND b=id FROM JGraphElement WHERE id=:idElement",
                     ImmutableMap.of("idElement", idElement),
                     Boolean.class
                 );
@@ -150,7 +151,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                    "SELECT a=:idFrom AND b=id FROM Element WHERE id=:idElement",
+                    "SELECT a=:idFrom AND b=id FROM JGraphElement WHERE id=:idElement",
                     ImmutableMap.of(
                         "idElement", idElement,
                         "idFrom", idFrom
@@ -198,7 +199,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                    "SELECT a=id AND b=:idTo FROM Element WHERE id=:idElement",
+                    "SELECT a=id AND b=:idTo FROM JGraphElement WHERE id=:idElement",
                     ImmutableMap.of(
                         "idElement", idElement,
                         "idTo", idTo
@@ -246,7 +247,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                    "SELECT id!=:idOn AND a=idOn AND b=:idOn FROM Element WHERE id=:idElement",
+                    "SELECT id!=:idOn AND a=idOn AND b=:idOn FROM JGraphElement WHERE id=:idElement",
                     ImmutableMap.of(
                         "idElement", idElement,
                         "idOn", idOn
@@ -878,13 +879,13 @@ public class ElementService {
         databaseService
             .getNamedParameterJdbcTemplate()
             .update(
-                "INSERT INTO JGraphElement (a, b) VALUES (:a, :b)",
-                    new MapSqlParameterSource(
-                        ImmutableMap.of(
-                            "a", createElementRequestValueToSqlInsert(a),
-                            "b", createElementRequestValueToSqlInsert(b)
-                        )
-                    ),
+                "INSERT INTO JGraphElement (a, b) VALUES (" +
+                    createElementRequestValueToSqlInsert(a) + "," +
+                    createElementRequestValueToSqlInsert(b) +
+                ")",
+                new MapSqlParameterSource(
+                    ImmutableMap.of("lastInsertId", getLastInsertId())
+                ),
                 keyHolder
             );
         return keyHolder.getKey().longValue();
@@ -893,9 +894,9 @@ public class ElementService {
     public OrderedSet<Long> createElements(Set<CreateElementRequest> requests) {
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
         databaseService
-            .getJdbcTemplate()
+            .getNamedParameterJdbcTemplate()
             .update(
-                "INSERT INTO JGraphElement (id, a, b) VALUES " + requests
+                "INSERT INTO JGraphElement (a, b) VALUES " + requests
                     .stream()
                     .map( request ->
                         "(" +
@@ -903,6 +904,7 @@ public class ElementService {
                             createElementRequestValueToSqlInsert(request.getB()) +
                         ")"
                     ).collect(Collectors.joining(",")),
+                new MapSqlParameterSource(ImmutableMap.of("lastInsertId", getLastInsertId())),
                 keyHolder
             );
         return keyHolder
@@ -913,8 +915,17 @@ public class ElementService {
             .collect(Collectors.toCollection(OrderedSet::new));
     }
 
+    private long getLastInsertId() {
+        return databaseService
+            .getJdbcTemplate()
+            .queryForObject(
+                "SELECT MAX(id) FROM JGraphElement",
+                Long.class
+            );
+    }
+
     private String createElementRequestValueToSqlInsert(long value) {
-        return value > 0 ? value + "" : "LAST_INSERT_ID() + " + (-1 * value + 1);
+        return value > 0 ? value + "" : ":lastInsertId + " + (-1 * value + 1);
     }
 
     public long createNode() {
@@ -1009,7 +1020,7 @@ public class ElementService {
         databaseService
             .getNamedParameterJdbcTemplate()
             .update(
-                "DELETE FROM Element WHERE id = :id",
+                "DELETE FROM JGraphElement WHERE id = :id",
                 ImmutableMap.of("id", id)
             );
     }
@@ -1018,11 +1029,29 @@ public class ElementService {
      * All of the Elements with the given ids must either not exist, or have no Elements connected to or from it.
      */
     public void deleteElements(Set<Long> ids) {
+        if(ids.isEmpty()) {
+            return;
+        }
+
         databaseService
             .getNamedParameterJdbcTemplate()
             .update(
-                "DELETE FROM Element WHERE id IN (:ids)",
+                "DELETE FROM JGraphElement WHERE id IN (:ids)",
                 ImmutableMap.of("ids", ids)
             );
+    }
+
+    /**
+     * This deletes all elements, resets the auto_increment, and inserts the seed node.
+     */
+    public void seed() {
+        deleteElements(getAllIds());
+        JdbcTemplate jdbcTemplate = databaseService.getJdbcTemplate();
+        jdbcTemplate.update(
+            "ALTER TABLE JGraphElement AUTO_INCREMENT = 1;"
+        );
+        jdbcTemplate.update(
+            "INSERT INTO JGraphElement (a, b) VALUES (1, 1);"
+        );
     }
 }

@@ -154,25 +154,25 @@ public interface ElementClient extends MathClient {
     long createPendantFrom(@Param("idFrom") long from);
 
     @RequestLine("POST api/jgraph/elements/element/{idFrom}/pendants")
-    OrderedSet<Long> createPendantsFrom(@Param("idFrom") long from, int howMany);
+    OrderedSet<Long> createPendantsFrom(int howMany, @Param("idFrom") long idFrom);
 
     @RequestLine("POST api/jgraph/elements/element/idTo/pendant/to")
     long createPendantTo(@Param("idTo") long idTo);
 
     @RequestLine("POST api/jgraph/elements/element/{idTo}/pendants")
-    OrderedSet<Long> createPendantsTo(@Param("idTo") long idTo, int howMany);
+    OrderedSet<Long> createPendantsTo(int howMany, @Param("idTo") long idTo);
 
     @RequestLine("POST api/jgraph/elements/element/{idOn}/loop}")
     long createLoopOn(@Param("idOn") long idOn);
 
     @RequestLine("POST api/jgraph/elements/element/{idOn}/loops")
-    OrderedSet<Long> createLoopsOn(@Param("idOn") long idOn, int howMany);
+    OrderedSet<Long> createLoopsOn(int howMany, @Param("idOn") long idOn);
 
     @RequestLine("PUT api/jgraph/elements/element/{id}")
     void updateElement(@Param("id") long id, UpdateElementRequest request);
 
     @RequestLine("PUT api/jgraph/elements")
-    void updateElements(@Param("ids") OrderedSet<Long> ids, List<UpdateElementRequest> requests);
+    void updateElements(List<UpdateElementRequest> requests, @Param("ids") OrderedSet<Long> ids);
 
     @RequestLine("DELETE api/jgraph/elements/element/{id}")
     void deleteElement(@Param("id") long id);

@@ -2,6 +2,7 @@ package com.beumuth.math.core.internal.test;
 
 import com.beumuth.math.core.internal.application.ApplicationTests;
 import com.beumuth.math.core.internal.environment.EnvironmentTests;
+import com.beumuth.math.core.jgraph.element.ElementTests;
 import com.beumuth.math.core.settheory.object.ObjectTests;
 import com.beumuth.math.core.settheory.orderedpair.OrderedPairTests;
 import com.beumuth.math.core.settheory.set.SetTests;
@@ -16,6 +17,7 @@ import java.util.Optional;
 @Suite.SuiteClasses({
     ApplicationTests.class,
     EnvironmentTests.class,
+    ElementTests.class,
     ObjectTests.class,
     OrderedPairTests.class,
     SetTests.class

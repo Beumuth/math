@@ -14,9 +14,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import javax.annotation.PostConstruct;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -32,6 +34,7 @@ import static org.junit.Assert.*;
 @SpringBootTest
 public class ElementTests {
     @Autowired
+    @Qualifier(value="JGraphElementService")
     private ElementService elementService;
     @Autowired
     private MockElementService mockElementService;
@@ -43,6 +46,7 @@ public class ElementTests {
     @Before
     public void setupTests() {
         elementClient = clientService.getClient(ElementClient.class);
+        elementService.seed();
     }
 
     @Test
@@ -1243,6 +1247,7 @@ public class ElementTests {
     public void numNodesTest_noneExist_shouldReturnZero() {
         elementService.deleteElements(elementService.getAllIds());
         assertEquals(0, elementClient.numNodes());
+        elementService.seed();
     }
 
     @Test
@@ -1435,6 +1440,7 @@ public class ElementTests {
     public void getAllIdsTest_noneExist_shouldReturnEmptyOrderedSet() {
         elementService.deleteElements(elementService.getAllIds());
         assertEquals(OrderedSets.empty(), elementClient.getAllIds());
+        elementService.seed();
     }
     
     @Test
@@ -2149,6 +2155,7 @@ public class ElementTests {
     public void getAllElementsTest_noneExist_shouldReturnEmptyOrderedSet() {
         elementService.deleteElements(elementService.getAllIds());
         assertEquals(OrderedSets.empty(), elementClient.getAllElements());
+        elementService.seed();
     }
 
     @Test
@@ -2990,7 +2997,7 @@ public class ElementTests {
     public void createPendantsFromTest_negativeHowMany_shouldReturn400() {
         long idFrom = elementService.createNode();
         try {
-            elementClient.createPendantsFrom(idFrom, -1);
+            elementClient.createPendantsFrom(-1, idFrom);
         } catch(FeignException e) {
             assertExceptionLike(e, 400);
         } finally {
@@ -3002,7 +3009,7 @@ public class ElementTests {
     public void createPendantsFromTest_zeroHowMany_shouldReturn400() {
         long idFrom = elementService.createNode();
         try {
-            elementClient.createPendantsFrom(idFrom, 0);
+            elementClient.createPendantsFrom(0, idFrom);
         } catch(FeignException e) {
             assertExceptionLike(e, 400);
         } finally {
@@ -3015,7 +3022,7 @@ public class ElementTests {
         long idFrom = elementService.createNode();
         Long idPendant = null;
         try {
-            Set<Long> idPendants = elementClient.createPendantsFrom(idFrom, 1);
+            Set<Long> idPendants = elementClient.createPendantsFrom(1, idFrom);
             assertEquals(1, idPendants.size());
             idPendant = idPendants.stream().findFirst().get();
             assertTrue(elementService.isElementPendantFrom(idPendant, idFrom));
@@ -3031,7 +3038,7 @@ public class ElementTests {
     public void createPendantsFromTest_oneHowMany_fromDoesNotExist_shouldReturn404() {
         long idFrom = mockElementService.idNonexistent();
         try {
-            elementClient.createPendantsFrom(idFrom, 1);
+            elementClient.createPendantsFrom(1, idFrom);
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idFrom + "");
         }
@@ -3041,7 +3048,7 @@ public class ElementTests {
     public void createPendantsFromTest_manyHowMany_shouldCreatePendants() {
         long idFrom = elementService.createNode();
         try {
-            OrderedSet<Long> idPendants = elementClient.createPendantsFrom(idFrom, 5);
+            OrderedSet<Long> idPendants = elementClient.createPendantsFrom(5, idFrom);
             try {
                 assertEquals(
                     Collections.nCopies(5, true),
@@ -3086,7 +3093,7 @@ public class ElementTests {
     public void createPendantsToTest_negativeHowMany_shouldReturn400() {
         long idTo = elementService.createNode();
         try {
-            elementClient.createPendantsTo(idTo, -1);
+            elementClient.createPendantsTo(-1, idTo);
         } catch(FeignException e) {
             assertExceptionLike(e, 400);
         } finally {
@@ -3098,7 +3105,7 @@ public class ElementTests {
     public void createPendantsToTest_zeroHowMany_shouldReturn400() {
         long idTo = elementService.createNode();
         try {
-            elementClient.createPendantsTo(idTo, 0);
+            elementClient.createPendantsTo(0, idTo);
         } catch(FeignException e) {
             assertExceptionLike(e, 400);
         } finally {
@@ -3111,7 +3118,7 @@ public class ElementTests {
         long idTo = elementService.createNode();
         Long idPendant = null;
         try {
-            Set<Long> idPendants = elementClient.createPendantsTo(idTo, 1);
+            Set<Long> idPendants = elementClient.createPendantsTo(1, idTo);
             assertEquals(1, idPendants.size());
             idPendant = idPendants.stream().findFirst().get();
             assertTrue(elementService.isElementPendantTo(idPendant, idTo));
@@ -3127,7 +3134,7 @@ public class ElementTests {
     public void createPendantsToTest_oneHowMany_toDoesNotExist_shouldReturn404() {
         long idTo = mockElementService.idNonexistent();
         try {
-            elementClient.createPendantsTo(idTo, 1);
+            elementClient.createPendantsTo(1, idTo);
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idTo + "");
         }
@@ -3137,7 +3144,7 @@ public class ElementTests {
     public void createPendantsToTest_manyHowMany_shouldCreatePendants() {
         long idTo = elementService.createNode();
         try {
-            OrderedSet<Long> idPendants = elementClient.createPendantsTo(idTo, 5);
+            OrderedSet<Long> idPendants = elementClient.createPendantsTo(5, idTo);
             try {
                 assertEquals(
                     Collections.nCopies(5, true),
@@ -3182,7 +3189,7 @@ public class ElementTests {
     public void createLoopsOnTest_negativeHowMany_shouldReturn400() {
         long idOn = elementService.createNode();
         try {
-            elementClient.createLoopsOn(idOn, -1);
+            elementClient.createLoopsOn(-1, idOn);
         } catch(FeignException e) {
             assertExceptionLike(e, 400);
         } finally {
@@ -3194,7 +3201,7 @@ public class ElementTests {
     public void createLoopsOnTest_zeroHowMany_shouldReturn400() {
         long idOn = elementService.createNode();
         try {
-            elementClient.createLoopsOn(idOn, 0);
+            elementClient.createLoopsOn(0, idOn);
         } catch(FeignException e) {
             assertExceptionLike(e, 400);
         } finally {
@@ -3207,7 +3214,7 @@ public class ElementTests {
         long idOn = elementService.createNode();
         Long idLoop = null;
         try {
-            Set<Long> idLoops = elementClient.createLoopsOn(idOn, 1);
+            Set<Long> idLoops = elementClient.createLoopsOn(1, idOn);
             assertEquals(1, idLoops.size());
             idLoop = idLoops.stream().findFirst().get();
             assertTrue(elementService.isElementLoopOn(idLoop, idOn));
@@ -3223,7 +3230,7 @@ public class ElementTests {
     public void createLoopsOnTest_oneHowMany_onDoesNotExist_shouldReturn404() {
         long idOn = mockElementService.idNonexistent();
         try {
-            elementClient.createLoopsOn(idOn, 1);
+            elementClient.createLoopsOn(1, idOn);
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idOn + "");
         }
@@ -3233,7 +3240,7 @@ public class ElementTests {
     public void createLoopsOnTest_manyHowMany_shouldCreateLoops() {
         long idOn = elementService.createNode();
         try {
-            OrderedSet<Long> idLoops = elementClient.createLoopsOn(idOn, 5);
+            OrderedSet<Long> idLoops = elementClient.createLoopsOn(5, idOn);
             try {
                 assertEquals(
                     Collections.nCopies(5, true),
@@ -3318,8 +3325,8 @@ public class ElementTests {
         long idNodeB = elementService.createNode();
         try {
             elementClient.updateElements(
-                OrderedSets.with(idNodeA, idNodeB),
-                Lists.newArrayList(new UpdateElementRequest(idNodeA, idNodeA))
+                Lists.newArrayList(new UpdateElementRequest(idNodeA, idNodeA)),
+                OrderedSets.with(idNodeA, idNodeB)
             );
         } catch(FeignException e) {
             assertExceptionLike(e, 400);
@@ -3328,7 +3335,7 @@ public class ElementTests {
 
     @Test
     public void updateElementsTest_emptyIdsAndRequests_shouldDoNothing() {
-        elementClient.updateElements(OrderedSets.empty(), Collections.emptyList());
+        elementClient.updateElements(Collections.emptyList(), OrderedSets.empty());
     }
 
     @Test
@@ -3338,8 +3345,8 @@ public class ElementTests {
         Element loop = mockElementService.loopOn(idNodeA);
         try {
             elementClient.updateElements(
-                OrderedSets.singleton(loop.getId()),
-                Collections.singletonList(new UpdateElementRequest(idNodeB, idNodeB))
+                Collections.singletonList(new UpdateElementRequest(idNodeB, idNodeB)),
+                OrderedSets.singleton(loop.getId())
             );
             assertEquals(new Element(loop.getId(), idNodeB, idNodeB), elementClient.getElement(loop.getId()));
         } finally {
@@ -3353,8 +3360,8 @@ public class ElementTests {
         long idNonexistent = mockElementService.idNonexistent();
         try {
             elementClient.updateElements(
-                OrderedSets.singleton(idNode),
-                Collections.singletonList(new UpdateElementRequest(idNonexistent, idNode))
+                Collections.singletonList(new UpdateElementRequest(idNonexistent, idNode)),
+                OrderedSets.singleton(idNode)
             );
             fail();
         } catch(FeignException e) {
@@ -3399,13 +3406,13 @@ public class ElementTests {
         OrderedSet<Long> idAll = OrderedSets.with(idNodeA, idNodeB, idPendant, idEdge);
         try {
             elementClient.updateElements(
-                idAll,
                 Lists.newArrayList(
                     new UpdateElementRequest(idNodeA, idNodeB),
                     new UpdateElementRequest(idNodeB, idNodeB),
                     new UpdateElementRequest(idNodeA, idNodeA),
                     new UpdateElementRequest(idEdge, idEdge)
-                )
+                ),
+                idAll
             );
             assertEquals(
                 OrderedSets.with(
@@ -3492,7 +3499,7 @@ public class ElementTests {
         idAll.add(mockElementService.idNonexistent());
         try {
             elementClient.deleteElements(idAll);
-            assertEquals(false, elementService.doAnyElementsExist(idAll));
+            assertFalse(elementService.doAnyElementsExist(idAll));
         } finally {
             elementService.deleteElements(idAll);
         }

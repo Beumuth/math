@@ -34,7 +34,7 @@ public class MathDataSource extends BasicDataSource {
             "jdbc:mysql://" + databaseConfiguration.host + ":" + databaseConfiguration.port + "/" +
             databaseService.databaseConfigurationAndApplicationModeToDatabaseName(
                 databaseConfiguration, applicationMode
-            ) + "?sslMode=DISABLED"
+            ) + "?allowPublicKeyRetrieval=true&useSSL=false"
         );
         setUsername(databaseConfiguration.username);
         setPassword(databaseConfiguration.password);

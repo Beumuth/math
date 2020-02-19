@@ -10,6 +10,7 @@ import com.github.instantpudd.validator.Validator;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +28,7 @@ import static com.github.instantpudd.validator.ClientErrorStatusCode.*;
 public class ElementController {
 
     @Autowired
+    @Qualifier(value="JGraphElementService")
     private ElementService elementService;
 
     @RequestMapping(method=RequestMethod.GET, value="/elements/element/{id}/exists")
@@ -314,7 +316,8 @@ public class ElementController {
         return elementService.getIdsEndpointsOf(id);
     }
 
-    @RequestMapping(method=RequestMethod.GET, value="/elements/endpoints/of")
+    @RequestMapping(method=RequestMethod.GET, value="/elements/endpoints/of/ids")
+    @ResponseBody
     public OrderedSet<OrderedSet<Long>> getIdsEndpointsOfForEach(@RequestParam("ids") OrderedSet<Long> ids) {
         return ids.isEmpty() ? OrderedSets.empty() : elementService.getIdsEndpointsOfForEach(ids);
     }
