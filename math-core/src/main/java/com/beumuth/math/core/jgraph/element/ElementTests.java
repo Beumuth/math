@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.annotation.PostConstruct;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -2121,7 +2120,7 @@ public class ElementTests {
         Set<Long> idPendantsTo = elementService.createPendantsTo(idNodeA, 3);
         Set<Long> idLoopsOn = elementService.createLoopsOn(idNodeA, 3);
         Set<Long> idEdges = elementService.createElements(
-            Sets.newHashSet(
+            OrderedSets.with(
                 new CreateElementRequest(idNodeA, idNodeB),
                 new CreateElementRequest(idNodeB, idNodeA)
             )
@@ -3068,8 +3067,8 @@ public class ElementTests {
         Element element = null;
         try {
             element = elementService.getElement(elementClient.createPendantTo(idTo));
-            assertEquals(idTo, element.getA());
-            assertEquals(element.getId(), element.getB());
+            assertEquals(element.getId(), element.getA());
+            assertEquals(idTo, element.getB());
         } finally {
             elementService.deleteElement(idTo);
             if(element != null) {

@@ -170,4 +170,9 @@ public class OrderedSet<T> implements List<T>, Set<T> {
     public boolean equals(Object obj) {
         return implementation.equals(obj);
     }
+
+    @Override
+    public String toString() {
+        return implementation.toString();
+    }
 }

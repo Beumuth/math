@@ -15,17 +15,17 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ResultSetExtractor;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Service;
 
-import java.math.BigInteger;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 @Service("JGraphElementService")
 public class ElementService {
@@ -34,14 +34,20 @@ public class ElementService {
     private static final ResultSetExtractor<OrderedSet<Long>> ID_ORDERED_SET_EXTRACTOR = rs -> {
         OrderedSet<Long> result = OrderedSets.empty();
         while(rs.next()) {
-            result.add(rs.getLong("id"));
+            result.add(rs.getLong("id") == 0 ? null : rs.getLong("id"));
         }
         return result;
     };
     private static final ResultSetExtractor<OrderedSet<Element>> ELEMENT_ORDERED_SET_EXTRACTOR = rs -> {
         OrderedSet<Element> result = OrderedSets.empty();
         while(rs.next()) {
-            result.add(new Element(rs.getLong("id"), rs.getLong("a"), rs.getLong("b")));
+            result.add(
+                new Element(
+                    rs.getLong("id"),
+                    rs.getLong("a"),
+                    rs.getLong("b")
+                )
+            );
         }
         return result;
     };
@@ -57,7 +63,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                    "SELECT 1 FROM JGraphElement WHERE id=:id",
+                    "SELECT COUNT(1) FROM JGraphElement WHERE id=:id",
                     ImmutableMap.of("id", id),
                     Boolean.class
                 );
@@ -71,7 +77,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                    "SELECT 1 FROM JGraphElement WHERE id IN (:ids)",
+                    "SELECT COUNT(1) FROM JGraphElement WHERE id IN (:ids)",
                     ImmutableMap.of("ids", ids),
                     Boolean.class
                 );
@@ -128,7 +134,7 @@ public class ElementService {
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
                     ") ids LEFT JOIN JGraphElement j " +
-                        "ON hardcodedNames.column_0 = j.id " +
+                        "ON ids.column_0 = j.id " +
                 "WHERE id IN (:idElements)",
                 ImmutableMap.of("idElements", idElements),
                 new ResultSetExtractor<OrderedSet<Boolean>>() {
@@ -169,14 +175,14 @@ public class ElementService {
             .query(
                 "SELECT " +
                     "ids.column_0 AS id, " +
-                    "j.a IS NOT NULL AND id != :idFrom AND j.a=:idFrom AND j.b=id AS isPendantrom " +
+                    "j.a IS NOT NULL AND id != :idFrom AND j.a=:idFrom AND j.b=id AS isPendantFrom " +
                 "FROM " +
                     "(VALUES " + idElements
                         .stream()
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
                 ") ids LEFT JOIN JGraphElement j " +
-                    "ON hardcodedNames.column_0 = j.id " +
+                    "ON ids.column_0 = j.id " +
                 "WHERE id IN (:idElements)",
                 ImmutableMap.of("idElements", idElements, "idFrom", idFrom),
                 new ResultSetExtractor<OrderedSet<Boolean>>() {
@@ -224,7 +230,7 @@ public class ElementService {
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
                     ") ids LEFT JOIN JGraphElement j " +
-                    "ON hardcodedNames.column_0 = j.id " +
+                    "ON ids.column_0 = j.id " +
                 "WHERE id IN (:idElements)",
                 ImmutableMap.of("idElements", idElements, "idTo", idTo),
                 new ResultSetExtractor<OrderedSet<Boolean>>() {
@@ -247,7 +253,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                    "SELECT id!=:idOn AND a=idOn AND b=:idOn FROM JGraphElement WHERE id=:idElement",
+                    "SELECT id!=:idOn AND a=:idOn AND b=:idOn FROM JGraphElement WHERE id=:idElement",
                     ImmutableMap.of(
                         "idElement", idElement,
                         "idOn", idOn
@@ -265,14 +271,14 @@ public class ElementService {
             .query(
                 "SELECT " +
                     "ids.column_0 AS id, " +
-                    "j.a IS NOT NULL AND id!=idOn AND j.a=:idTo AND j.b=:idTo AS isLoopOn " +
+                    "j.a IS NOT NULL AND ids.column_0 != :idOn AND j.a = :idOn AND j.b = :idOn AS isLoopOn " +
                 "FROM " +
                     "(VALUES " + idElements
                         .stream()
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
                     ") ids LEFT JOIN JGraphElement j " +
-                        "ON hardcodedNames.column_0 = j.id " +
+                        "ON ids.column_0 = j.id " +
                 "WHERE id IN (:idElements)",
                 ImmutableMap.of("idElements", idElements, "idOn", idOn),
                 new ResultSetExtractor<OrderedSet<Boolean>>() {
@@ -301,7 +307,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                    "SELECT id  FROM JGraphElement WHERE id != :id AND (a=:id OR b=:id)",
+                    "SELECT COUNT(1)  FROM JGraphElement WHERE id != :id AND (a=:id OR b=:id)",
                     ImmutableMap.of("id", id),
                     Boolean.class
                 );
@@ -321,20 +327,20 @@ public class ElementService {
             .getNamedParameterJdbcTemplate()
             .query(
                 "SELECT " +
-                    "ids.id, " +
-                    "COUNT(JGraphElement.id) > 0 AS isEndpoint " +
+                    "ids.column_0 AS id, " +
+                    "JGraphElement.id IS NOT NULL AND COUNT(JGraphElement.id) > 0 AS isEndpoint " +
                 "FROM " +
                     "(VALUES " +
                         ids
                             .stream()
-                            .map(id -> "(" + id + ")")
+                            .map(id -> "ROW (" + id + ")")
                             .collect(Collectors.joining(",")) +
-                    ") AS ids LEFT JOIN JGraphElement ON (" +
-                        "ids.id != JGraphElement.id AND (" +
-                        "ids.id=JGraphElement.a OR " +
-                        "ids.id=JGraphElement.b" +
-                    ")" +
-                ") GROUP BY ids.id",
+                    ") AS ids LEFT JOIN JGraphElement ON " +
+                        "ids.column_0 != JGraphElement.id AND (" +
+                            "ids.column_0 = JGraphElement.a OR " +
+                            "ids.column_0 = JGraphElement.b" +
+                        ") " +
+                "GROUP BY ids.column_0",
                 ImmutableMap.of("ids", ids),
                 new ResultSetExtractor<OrderedSet<Boolean>>() {
                     @Override
@@ -875,57 +881,53 @@ public class ElementService {
     }
 
     public long createElement(long a, long b) {
-        GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
+        long nextId = getNextId();
         databaseService
-            .getNamedParameterJdbcTemplate()
+            .getJdbcTemplate()
             .update(
-                "INSERT INTO JGraphElement (a, b) VALUES (" +
-                    createElementRequestValueToSqlInsert(a) + "," +
-                    createElementRequestValueToSqlInsert(b) +
-                ")",
-                new MapSqlParameterSource(
-                    ImmutableMap.of("lastInsertId", getLastInsertId())
-                ),
-                keyHolder
+                "INSERT INTO JGraphElement (id, a, b) VALUES (" +
+                    nextId + ", " +
+                    createElementRequestValueToSqlInsert(a, nextId) + "," +
+                    createElementRequestValueToSqlInsert(b, nextId) +
+                ")"
             );
-        return keyHolder.getKey().longValue();
+        return nextId;
     }
 
-    public OrderedSet<Long> createElements(Set<CreateElementRequest> requests) {
-        GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
-        databaseService
-            .getNamedParameterJdbcTemplate()
-            .update(
-                "INSERT INTO JGraphElement (a, b) VALUES " + requests
-                    .stream()
-                    .map( request ->
-                        "(" +
-                            createElementRequestValueToSqlInsert(request.getA()) + ", " +
-                            createElementRequestValueToSqlInsert(request.getB()) +
-                        ")"
-                    ).collect(Collectors.joining(",")),
-                new MapSqlParameterSource(ImmutableMap.of("lastInsertId", getLastInsertId())),
-                keyHolder
-            );
-        return keyHolder
-            .getKeyList()
-            .stream()
-            .mapToLong(key -> ((BigInteger) key.get("GENERATED_KEY")).longValue())
+    public OrderedSet<Long> createElements(OrderedSet<CreateElementRequest> requests) {
+        AtomicInteger counter = new AtomicInteger();
+        long nextId = getNextId();
+        OrderedSet<Long> ids = LongStream
+            .range(nextId, nextId + requests.size())
             .boxed()
             .collect(Collectors.toCollection(OrderedSet::new));
+        databaseService
+            .getJdbcTemplate()
+            .update(
+                "INSERT INTO JGraphElement (id, a, b) VALUES " + requests
+                    .stream()
+                    .map(request ->
+                        "(" +
+                            ids.get(counter.getAndIncrement()) + ", " +
+                            createElementRequestValueToSqlInsert(request.getA(), nextId) + ", " +
+                            createElementRequestValueToSqlInsert(request.getB(), nextId) +
+                        ")"
+                    ).collect(Collectors.joining(","))
+            );
+        return ids;
     }
 
-    private long getLastInsertId() {
+    private long getNextId() {
         return databaseService
             .getJdbcTemplate()
             .queryForObject(
-                "SELECT MAX(id) FROM JGraphElement",
+                "SELECT MAX(id) + 1 FROM JGraphElement",
                 Long.class
             );
     }
 
-    private String createElementRequestValueToSqlInsert(long value) {
-        return value > 0 ? value + "" : ":lastInsertId + " + (-1 * value + 1);
+    private String createElementRequestValueToSqlInsert(long value, long nextId) {
+        return value > 0 ? value + "" : "" + (nextId + (-1 * value));
     }
 
     public long createNode() {
@@ -937,7 +939,7 @@ public class ElementService {
             IntStream
                 .range(0, number)
                 .mapToObj(i -> new CreateElementRequest(-i, -i))
-                .collect(Collectors.toCollection(Sets::newHashSet))
+                .collect(Collectors.toCollection(OrderedSet::new))
         );
     }
 
@@ -950,7 +952,7 @@ public class ElementService {
             IntStream
                 .range(0, howMany)
                 .mapToObj(i -> new CreateElementRequest(from, -1 * i))
-                .collect(Collectors.toCollection(Sets::newHashSet))
+                .collect(Collectors.toCollection(OrderedSet::new))
         );
     }
 
@@ -963,7 +965,7 @@ public class ElementService {
             IntStream
                 .range(0, howMany)
                 .mapToObj(i -> new CreateElementRequest(-1 * i, to))
-                .collect(Collectors.toCollection(Sets::newHashSet))
+                .collect(Collectors.toCollection(OrderedSet::new))
         );
     }
 
@@ -977,7 +979,7 @@ public class ElementService {
                 IntStream
                     .range(0, howMany)
                     .mapToObj(i -> new CreateElementRequest(on, on))
-                    .collect(Collectors.toCollection(Sets::newHashSet))
+                    .collect(Collectors.toCollection(OrderedSet::new))
             )
         );
     }

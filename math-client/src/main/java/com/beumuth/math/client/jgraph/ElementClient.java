@@ -12,11 +12,11 @@ public interface ElementClient extends MathClient {
     @RequestLine("GET api/jgraph/elements/element/{id}/exists")
     boolean doesElementExist(@Param("id") long id);
 
-    @RequestLine("GET api/jgraph/elements/exist/any")
-    boolean doAnyElementsExist(@Param("id") Set<Long> ids);
+    @RequestLine("GET api/jgraph/elements/exist/any?ids={ids}")
+    boolean doAnyElementsExist(@Param("ids") Set<Long> ids);
 
-    @RequestLine("GET api/jgraph/elements/exist/all")
-    boolean doAllElementsExist(@Param("id") Set<Long> ids);
+    @RequestLine("GET api/jgraph/elements/exist/all?ids={ids}")
+    boolean doAllElementsExist(@Param("ids") Set<Long> ids);
 
     @RequestLine("GET api/jgraph/elements/element/with/{a}/or/{b}/exists")
     boolean doesElementExistWithAOrB(@Param("a") long a, @Param("b") long b);
@@ -27,31 +27,31 @@ public interface ElementClient extends MathClient {
     @RequestLine("GET api/jgraph/elements/element/{id}/isNode")
     boolean isElementNode(@Param("id") long id);
 
-    @RequestLine("GET api/jgraph/elements/areNodes}")
+    @RequestLine("GET api/jgraph/elements/areNodes?ids={ids}")
     OrderedSet<Boolean> areElementsNodes(@Param("ids") OrderedSet<Long> ids);
 
     @RequestLine("GET api/jgraph/elements/element/{id}/isPendantFrom/{idFrom}")
     boolean isElementPendantFrom(@Param("id") long id, @Param("idFrom") long idFrom);
 
-    @RequestLine("GET api/jgraph/elements/arePendantsFrom/{idFrom}}")
+    @RequestLine("GET api/jgraph/elements/arePendantsFrom/{idFrom}?ids={ids}")
     OrderedSet<Boolean> areElementsPendantsFrom(@Param("idFrom") long idFrom, @Param("ids") OrderedSet<Long> ids);
 
     @RequestLine("GET api/jgraph/elements/element/{id}/isPendantTo/{idTo}")
     boolean isElementPendantTo(@Param("id") long id, @Param("idTo") long idTo);
 
-    @RequestLine("GET api/jgraph/elements/arePendantsTo/{idTo}}")
+    @RequestLine("GET api/jgraph/elements/arePendantsTo/{idTo}?ids={ids}")
     OrderedSet<Boolean> areElementsPendantsTo(@Param("idTo") long idTo, @Param("ids") OrderedSet<Long> ids);
 
     @RequestLine("GET api/jgraph/elements/element/{id}/isLoopOn/{idOn}")
     boolean isElementLoopOn(@Param("id") long id, @Param("idOn") long idOn);
 
-    @RequestLine("GET api/jgraph/elements/areLoopsOn/{idOn}}")
+    @RequestLine("GET api/jgraph/elements/areLoopsOn/{idOn}?ids={ids}")
     OrderedSet<Boolean> areElementsLoopsOn(@Param("idOn") long idOn, @Param("ids") OrderedSet<Long> ids);
 
-    @RequestLine("GET api/jgraph/elements/element/{id}/isEndpoint}")
+    @RequestLine("GET api/jgraph/elements/element/{id}/isEndpoint")
     boolean isElementEndpoint(@Param("id") long id);
 
-    @RequestLine("GET api/jgraph/elements/areEndpoints}")
+    @RequestLine("GET api/jgraph/elements/areEndpoints?ids={ids}")
     OrderedSet<Boolean> areElementsEndpoints(@Param("ids") OrderedSet<Long> ids);
 
     @RequestLine("GET api/jgraph/elements/connected/{a}/{b}")
@@ -105,7 +105,7 @@ public interface ElementClient extends MathClient {
     @RequestLine("GET api/jgraph/elements/element/{id}/endpoints/of/ids")
     OrderedSet<Long> getIdsEndpointsOf(@Param("id") long id);
 
-    @RequestLine("GET api/jgraph/elements/endpoints/of/ids")
+    @RequestLine("GET api/jgraph/elements/endpoints/of/ids?ids={ids}")
     OrderedSet<Set<Long>> getIdsEndpointsOfForEach(@Param("ids") OrderedSet<Long> ids);
 
     @RequestLine("GET api/jgraph/elements")
@@ -135,7 +135,7 @@ public interface ElementClient extends MathClient {
     @RequestLine("GET api/jgraph/elements/element/{id}/endpoints/of")
     OrderedSet<Element> getEndpointsOf(@Param("id") long id);
 
-    @RequestLine("GET api/jgraph/elements/endpoints/of")
+    @RequestLine("GET api/jgraph/elements/endpoints/of?ids={ids}")
     OrderedSet<OrderedSet<Element>> getEndpointsOfForEach(@Param("ids") OrderedSet<Long> ids);
 
     @RequestLine("POST api/jgraph/elements/element")
@@ -156,13 +156,13 @@ public interface ElementClient extends MathClient {
     @RequestLine("POST api/jgraph/elements/element/{idFrom}/pendants")
     OrderedSet<Long> createPendantsFrom(int howMany, @Param("idFrom") long idFrom);
 
-    @RequestLine("POST api/jgraph/elements/element/idTo/pendant/to")
+    @RequestLine("POST api/jgraph/elements/element/{idTo}/pendant/to")
     long createPendantTo(@Param("idTo") long idTo);
 
-    @RequestLine("POST api/jgraph/elements/element/{idTo}/pendants")
+    @RequestLine("POST api/jgraph/elements/element/{idTo}/pendants/to")
     OrderedSet<Long> createPendantsTo(int howMany, @Param("idTo") long idTo);
 
-    @RequestLine("POST api/jgraph/elements/element/{idOn}/loop}")
+    @RequestLine("POST api/jgraph/elements/element/{idOn}/loop")
     long createLoopOn(@Param("idOn") long idOn);
 
     @RequestLine("POST api/jgraph/elements/element/{idOn}/loops")
@@ -171,12 +171,12 @@ public interface ElementClient extends MathClient {
     @RequestLine("PUT api/jgraph/elements/element/{id}")
     void updateElement(@Param("id") long id, UpdateElementRequest request);
 
-    @RequestLine("PUT api/jgraph/elements")
+    @RequestLine("PUT api/jgraph/elements?ids={ids}")
     void updateElements(List<UpdateElementRequest> requests, @Param("ids") OrderedSet<Long> ids);
 
     @RequestLine("DELETE api/jgraph/elements/element/{id}")
     void deleteElement(@Param("id") long id);
 
-    @RequestLine("DELETE api/jgraph/elements")
+    @RequestLine("DELETE api/jgraph/elements?ids={ids}")
     void deleteElements(@Param("ids") Set<Long> ids);
 }
