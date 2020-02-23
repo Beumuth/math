@@ -2248,15 +2248,11 @@ public class ElementTests {
     @Test
     public void getElementsWithAOrBTest_nBsExists_shouldReturnThem() {
         Element node = elementService.getElement(elementService.createNode());
-        Set<Element> allElements = Sets.newHashSet(node);
-        allElements.addAll(
-            elementService.getElements(
-                OrderedSets.with(elementService.createPendantsTo(node.getId(), 5))
-            )
-        );
+        OrderedSet<Element> allElements = OrderedSets.singleton(node);
+        allElements.addAll(mockElementService.pendantsTo(node.getId(), 5));
         long idNonexistent = mockElementService.idNonexistent();
         try {
-            assertEquals(allElements, elementClient.getElementsWithAOrB(node.getId(), idNonexistent));
+            assertEquals(allElements, elementClient.getElementsWithAOrB(idNonexistent, node.getId()));
         } finally {
             elementService.deleteElements(
                 allElements

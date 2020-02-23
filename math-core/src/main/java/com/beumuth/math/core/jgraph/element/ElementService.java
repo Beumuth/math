@@ -31,23 +31,23 @@ import java.util.stream.LongStream;
 @Service("JGraphElementService")
 public class ElementService {
 
-    private static final MathBeanPropertyRowMapper<Element> ROW_MAPPER =
+    public static final MathBeanPropertyRowMapper<Element> ROW_MAPPER =
         MathBeanPropertyRowMapper.newInstance(Element.class);
-    private static final ResultSetExtractor<OrderedSet<Long>> ID_ORDERED_SET_EXTRACTOR = rs -> {
+    public static final ResultSetExtractor<OrderedSet<Long>> ID_ORDERED_SET_EXTRACTOR = rs -> {
         OrderedSet<Long> result = OrderedSets.empty();
         while(rs.next()) {
             result.add(rs.getLong("id") == 0 ? null : rs.getLong("id"));
         }
         return result;
     };
-    private static final ResultSetExtractor<List<Long>> ID_LIST_EXTRACTOR = rs -> {
+    public static final ResultSetExtractor<List<Long>> ID_LIST_EXTRACTOR = rs -> {
         List<Long> result = Lists.newArrayList();
         while(rs.next()) {
             result.add(rs.getLong("id") == 0 ? null : rs.getLong("id"));
         }
         return result;
     };
-    private static final ResultSetExtractor<OrderedSet<Element>> ELEMENT_ORDERED_SET_EXTRACTOR = rs -> {
+    public static final ResultSetExtractor<OrderedSet<Element>> ELEMENT_ORDERED_SET_EXTRACTOR = rs -> {
         OrderedSet<Element> result = OrderedSets.empty();
         while(rs.next()) {
             long id = rs.getLong("id");
