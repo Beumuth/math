@@ -9,26 +9,28 @@ import com.beumuth.math.core.internal.database.DatabaseService;
 import com.beumuth.math.core.internal.database.MathBeanPropertyRowMapper;
 import com.beumuth.math.core.jgraph.component.ComponentService;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
+import org.assertj.core.util.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ResultSetExtractor;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 @Service("JGraphElementService")
 public class ElementService {
+
     private static final MathBeanPropertyRowMapper<Element> ROW_MAPPER =
         MathBeanPropertyRowMapper.newInstance(Element.class);
     private static final ResultSetExtractor<OrderedSet<Long>> ID_ORDERED_SET_EXTRACTOR = rs -> {
@@ -38,16 +40,38 @@ public class ElementService {
         }
         return result;
     };
+    private static final ResultSetExtractor<List<Long>> ID_LIST_EXTRACTOR = rs -> {
+        List<Long> result = Lists.newArrayList();
+        while(rs.next()) {
+            result.add(rs.getLong("id") == 0 ? null : rs.getLong("id"));
+        }
+        return result;
+    };
     private static final ResultSetExtractor<OrderedSet<Element>> ELEMENT_ORDERED_SET_EXTRACTOR = rs -> {
         OrderedSet<Element> result = OrderedSets.empty();
         while(rs.next()) {
-            result.add(
-                new Element(
-                    rs.getLong("id"),
-                    rs.getLong("a"),
-                    rs.getLong("b")
-                )
-            );
+            long id = rs.getLong("id");
+            long a = rs.getLong("a");
+            long b = rs.getLong("b");
+            if(id == 0 || a == 0 || b == 0) {
+                result.add(null);
+            } else {
+                result.add(new Element(id, a, b));
+            }
+        }
+        return result;
+    };
+    private static final ResultSetExtractor<List<Element>> ELEMENT_LIST_EXTRACTOR = rs -> {
+        List<Element> result = Lists.newArrayList();
+        while(rs.next()) {
+            long id = rs.getLong("id");
+            long a = rs.getLong("a");
+            long b = rs.getLong("b");
+            if(id == 0 || a == 0 || b == 0) {
+                result.add(null);
+            } else {
+                result.add(new Element(id, a, b));
+            }
         }
         return result;
     };
@@ -57,6 +81,23 @@ public class ElementService {
 
     @Autowired
     private DatabaseService databaseService;
+
+    private AtomicLong nextId;
+
+    @PostConstruct
+    public void initialize() {
+        Long maxId = databaseService
+            .getJdbcTemplate()
+            .queryForObject(
+                "SELECT MAX(id) FROM JGraphElement",
+                Long.class
+            );
+        if(maxId != null) {
+            nextId = new AtomicLong(maxId + 1);
+        } else {
+            seed();
+        }
+    }
 
     public boolean doesElementExist(long id) {
         try {
@@ -121,34 +162,21 @@ public class ElementService {
         }
     }
 
-    public OrderedSet<Boolean> areElementsNodes(OrderedSet<Long> idElements) {
+    public List<Boolean> areElementsNodes(OrderedSet<Long> idElements) {
         return databaseService
             .getNamedParameterJdbcTemplate()
-            .query(
+            .queryForList(
                 "SELECT " +
-                    "ids.column_0 AS id, " +
-                    "j.a IS NOT NULL AND j.a=id AND j.b=id AS isNode " +
+                    "j.a IS NOT NULL AND j.a=id AND j.b=id " +
                 "FROM " +
                     "(VALUES " + idElements
                         .stream()
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
                     ") ids LEFT JOIN JGraphElement j " +
-                        "ON ids.column_0 = j.id " +
-                "WHERE id IN (:idElements)",
+                        "ON ids.column_0 = j.id",
                 ImmutableMap.of("idElements", idElements),
-                new ResultSetExtractor<OrderedSet<Boolean>>() {
-                    @Override
-                    public OrderedSet<Boolean> extractData(ResultSet rs)
-                        throws SQLException, DataAccessException {
-                        
-                        OrderedSet<Boolean> result = new OrderedSet();
-                        while(rs.next()) {
-                            result.add(rs.getBoolean("idNode"));
-                        }
-                        return result;
-                    }
-                }
+                Boolean.class
             );
     }
 
@@ -169,34 +197,21 @@ public class ElementService {
         }
     }
 
-    public OrderedSet<Boolean> areElementsPendantsFrom(OrderedSet<Long> idElements, long idFrom) {
+    public List<Boolean> areElementsPendantsFrom(OrderedSet<Long> idElements, long idFrom) {
         return databaseService
             .getNamedParameterJdbcTemplate()
-            .query(
+            .queryForList(
                 "SELECT " +
-                    "ids.column_0 AS id, " +
-                    "j.a IS NOT NULL AND id != :idFrom AND j.a=:idFrom AND j.b=id AS isPendantFrom " +
+                    "j.a IS NOT NULL AND id != :idFrom AND j.a=:idFrom AND j.b=id " +
                 "FROM " +
                     "(VALUES " + idElements
                         .stream()
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
                 ") ids LEFT JOIN JGraphElement j " +
-                    "ON ids.column_0 = j.id " +
-                "WHERE id IN (:idElements)",
+                    "ON ids.column_0 = j.id",
                 ImmutableMap.of("idElements", idElements, "idFrom", idFrom),
-                new ResultSetExtractor<OrderedSet<Boolean>>() {
-                    @Override
-                    public OrderedSet<Boolean> extractData(ResultSet rs)
-                        throws SQLException, DataAccessException {
-                        
-                        OrderedSet<Boolean> result = new OrderedSet();
-                        while(rs.next()) {
-                            result.add(rs.getBoolean("isPendantFrom"));
-                        }
-                        return result;
-                    }
-                }
+                Boolean.class
             );
     }
 
@@ -217,34 +232,21 @@ public class ElementService {
         }
     }
 
-    public OrderedSet<Boolean> areElementsPendantsTo(OrderedSet<Long> idElements, long idTo) {
+    public List<Boolean> areElementsPendantsTo(OrderedSet<Long> idElements, long idTo) {
         return databaseService
             .getNamedParameterJdbcTemplate()
-            .query(
+            .queryForList(
                 "SELECT " +
-                    "ids.column_0 AS id, " +
-                    "j.a IS NOT NULL AND id != :idTo AND j.a=id AND j.b=:idTo AS isPendantTo " +
+                    "j.a IS NOT NULL AND id != :idTo AND j.a=id AND j.b=:idTo " +
                 "FROM " +
                     "(VALUES " + idElements
                         .stream()
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
                     ") ids LEFT JOIN JGraphElement j " +
-                    "ON ids.column_0 = j.id " +
-                "WHERE id IN (:idElements)",
+                    "ON ids.column_0 = j.id",
                 ImmutableMap.of("idElements", idElements, "idTo", idTo),
-                new ResultSetExtractor<OrderedSet<Boolean>>() {
-                    @Override
-                    public OrderedSet<Boolean> extractData(ResultSet rs)
-                        throws SQLException, DataAccessException {
-
-                        OrderedSet<Boolean> result = new OrderedSet();
-                        while(rs.next()) {
-                            result.add(rs.getBoolean("isPendantTo"));
-                        }
-                        return result;
-                    }
-                }
+                Boolean.class
             );
     }
 
@@ -265,34 +267,21 @@ public class ElementService {
         }
     }
 
-    public OrderedSet<Boolean> areElementsLoopsOn(OrderedSet<Long> idElements, long idOn) {
+    public List<Boolean> areElementsLoopsOn(OrderedSet<Long> idElements, long idOn) {
         return databaseService
             .getNamedParameterJdbcTemplate()
-            .query(
+            .queryForList(
                 "SELECT " +
-                    "ids.column_0 AS id, " +
-                    "j.a IS NOT NULL AND ids.column_0 != :idOn AND j.a = :idOn AND j.b = :idOn AS isLoopOn " +
+                    "j.a IS NOT NULL AND ids.column_0 != :idOn AND j.a = :idOn AND j.b = :idOn " +
                 "FROM " +
                     "(VALUES " + idElements
                         .stream()
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
                     ") ids LEFT JOIN JGraphElement j " +
-                        "ON ids.column_0 = j.id " +
-                "WHERE id IN (:idElements)",
+                        "ON ids.column_0 = j.id",
                 ImmutableMap.of("idElements", idElements, "idOn", idOn),
-                new ResultSetExtractor<OrderedSet<Boolean>>() {
-                    @Override
-                    public OrderedSet<Boolean> extractData(ResultSet rs)
-                        throws SQLException, DataAccessException {
-    
-                        OrderedSet<Boolean> result = new OrderedSet();
-                        while(rs.next()) {
-                            result.add(rs.getBoolean("isLoopOn"));
-                        }
-                        return result;
-                    }
-                }
+                Boolean.class
             );
     }
 
@@ -303,17 +292,13 @@ public class ElementService {
      * @return
      */
     public boolean isElementEndpoint(long id) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                    "SELECT COUNT(1)  FROM JGraphElement WHERE id != :id AND (a=:id OR b=:id)",
-                    ImmutableMap.of("id", id),
-                    Boolean.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            throw new ElementDoesNotExistException(id);
-        }
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT COUNT(1)  FROM JGraphElement WHERE id != :id AND (a=:id OR b=:id)",
+                ImmutableMap.of("id", id),
+                Boolean.class
+            );
     }
 
     /**
@@ -322,38 +307,26 @@ public class ElementService {
      * @param ids
      * @return
      */
-    public OrderedSet<Boolean> areElementsEndpoints(OrderedSet<Long> ids) {
+    public List<Boolean> areElementsEndpoints(OrderedSet<Long> ids) {
         return databaseService
             .getNamedParameterJdbcTemplate()
-            .query(
+            .queryForList(
                 "SELECT " +
-                    "ids.column_0 AS id, " +
-                    "JGraphElement.id IS NOT NULL AND COUNT(JGraphElement.id) > 0 AS isEndpoint " +
+                    "j.id IS NOT NULL AS isEndpoint " +
                 "FROM " +
                     "(VALUES " +
                         ids
                             .stream()
                             .map(id -> "ROW (" + id + ")")
                             .collect(Collectors.joining(",")) +
-                    ") AS ids LEFT JOIN JGraphElement ON " +
-                        "ids.column_0 != JGraphElement.id AND (" +
-                            "ids.column_0 = JGraphElement.a OR " +
-                            "ids.column_0 = JGraphElement.b" +
+                    ") AS ids LEFT JOIN JGraphElement j ON " +
+                        "ids.column_0 != j.id AND (" +
+                            "ids.column_0 = j.a OR " +
+                            "ids.column_0 = j.b" +
                         ") " +
                 "GROUP BY ids.column_0",
                 ImmutableMap.of("ids", ids),
-                new ResultSetExtractor<OrderedSet<Boolean>>() {
-                    @Override
-                    public OrderedSet<Boolean> extractData(ResultSet rs)
-                        throws SQLException, DataAccessException {
-
-                        OrderedSet<Boolean> result = new OrderedSet();
-                        while(rs.next()) {
-                            result.add(rs.getBoolean("isEndpoint"));
-                        }
-                        return result;
-                    }
-                }
+                Boolean.class
             );
     }
 
@@ -501,7 +474,7 @@ public class ElementService {
      * Get the ids of Elements that exist with the given list of ids. If an Element with an id at index i does not
      * exist, then the value at index i in the returned list will be null.
      */
-    public OrderedSet<Long> getIds(OrderedSet<Long> ids) {            
+    public List<Long> getIds(OrderedSet<Long> ids) {
         return databaseService
             .getNamedParameterJdbcTemplate()
             .query(
@@ -515,6 +488,26 @@ public class ElementService {
                             .collect(Collectors.joining(",")) +
                     ") ids LEFT JOIN JGraphElement j " +
                         "ON ids.column_0 = j.id ",
+                ImmutableMap.of("ids", ids),
+                ID_LIST_EXTRACTOR
+            );
+    }
+
+    public OrderedSet<Long> getIdsThatDoNotExist(OrderedSet<Long> ids) {
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .query(
+                "SELECT " +
+                    "ids.column_0 AS id " +
+                "FROM " +
+                    "(VALUES " +
+                        ids
+                            .stream()
+                            .map(i -> "ROW(" + i + ")")
+                            .collect(Collectors.joining(",")) +
+                    ") ids LEFT JOIN JGraphElement j " +
+                        "ON ids.column_0 = j.id " +
+                "WHERE j.id IS NULL",
                 ImmutableMap.of("ids", ids),
                 ID_ORDERED_SET_EXTRACTOR
             );
@@ -554,7 +547,7 @@ public class ElementService {
             .getJdbcTemplate()
             .query(
                 "SELECT id " +
-                "FROM JGraphElement ON " +
+                "FROM JGraphElement " +
                 "WHERE a = id AND b = id",
                 ID_ORDERED_SET_EXTRACTOR
             );
@@ -582,7 +575,7 @@ public class ElementService {
                 "SELECT id " +
                 "FROM JGraphElement " +
                 "WHERE " +
-                    "id != :idFrom AND " +
+                    "id != :idTo AND " +
                     "a = id AND " +
                     "b = :idTo",
                 ImmutableMap.of("idTo", idTo),
@@ -623,12 +616,12 @@ public class ElementService {
         }
     }
 
-    public OrderedSet<OrderedSet<Long>> getIdsEndpointsOfForEach(OrderedSet<Long> ids) {
+    public List<OrderedSet<Long>> getIdsEndpointsOfForEach(OrderedSet<Long> ids) {
         return databaseService
             .getJdbcTemplate()
             .query(
                 "SELECT " +
-                    "ids.column_0 AS idElement" +
+                    "ids.column_0 AS idElement, " +
                     "j.id AS idEndpoint " +
                 "FROM (" +
                     "VALUES " +
@@ -637,27 +630,30 @@ public class ElementService {
                             .map(id -> "ROW(" + id + ")")
                             .collect(Collectors.joining(",")) +
                     ") AS ids LEFT JOIN JGraphElement j ON " +
-                        "j.id != ids.id AND ( " +
-                        "j.a = ids.id OR " +
-                        "j.b = ids.b " +
+                        "j.id != ids.column_0 AND ( " +
+                            "j.a = ids.column_0 OR " +
+                            "j.b = ids.column_0 " +
+                        ") " +
                     "ORDER BY " +
                         "idElement, " +
                         "idEndpoint",
-                new ResultSetExtractor<OrderedSet<OrderedSet<Long>>>() {
+                new ResultSetExtractor<List<OrderedSet<Long>>>() {
                     @Override
-                    public OrderedSet<OrderedSet<Long>> extractData(ResultSet rs)
+                    public List<OrderedSet<Long>> extractData(ResultSet rs)
                         throws SQLException, DataAccessException {
 
-                        OrderedSet<OrderedSet<Long>> result = new OrderedSet<>();
+                        List<OrderedSet<Long>> result = Lists.newArrayList();
                         long idPrevious = -1;
-                        Set<Long> idEndpointsForElement = null;
+                        OrderedSet<Long> idEndpointsForElement = null;
                         while(rs.next()) {
                             long idCurrent = rs.getLong("idElement");
                             long idEndpoint = rs.getLong("idEndpoint");
                             if(idCurrent != idPrevious) {
+                                idPrevious = idCurrent;
                                 idEndpointsForElement = rs.wasNull() ?
                                     OrderedSets.empty() :
                                     OrderedSets.singleton(idEndpoint);
+                                result.add(idEndpointsForElement);
                             } else {
                                 idEndpointsForElement.add(idEndpoint);
                             }
@@ -695,29 +691,25 @@ public class ElementService {
      * Get the Elements that exist with the given list of ids. If an Element with an id at index i does not exist,
      * then the value at index i in the returned list will be null.
      */
-    public OrderedSet<Element> getElements(OrderedSet<Long> ids) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .query(
-                    "SELECT " +
-                        "ids.column_0 AS id, " +
-                        "j.a AS a, " +
-                        "j.b AS b " +
-                    "FROM " +
-                        "(VALUES " +
-                            ids
-                                .stream()
-                                .map(i -> "ROW(" + i + ")")
-                                .collect(Collectors.joining(",")) +
-                        ") ids LEFT JOIN JGraphElement j " +
-                            "ON ids.column_0 = j.id ",
-                    ImmutableMap.of("ids", ids),
-                    ELEMENT_ORDERED_SET_EXTRACTOR
-                );
-        } catch(EmptyResultDataAccessException e) {
-            return new OrderedSet();
-        }
+    public List<Element> getElements(OrderedSet<Long> ids) {
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .query(
+                "SELECT " +
+                    "ids.column_0 AS id, " +
+                    "j.a AS a, " +
+                    "j.b AS b " +
+                "FROM " +
+                    "(VALUES " +
+                        ids
+                            .stream()
+                            .map(i -> "ROW(" + i + ")")
+                            .collect(Collectors.joining(",")) +
+                    ") ids LEFT JOIN JGraphElement j " +
+                        "ON ids.column_0 = j.id ",
+                ImmutableMap.of("ids", ids),
+                ELEMENT_LIST_EXTRACTOR
+            );
     }
 
     public OrderedSet<Element> getElementsWithAOrB(long a, long b) {
@@ -790,8 +782,8 @@ public class ElementService {
                     "FROM JGraphElement " +
                     "WHERE " +
                         "id != :idTo AND " +
-                        "a = :idTo AND " +
-                        "b = id",
+                        "a = id AND " +
+                        "b = :idTo",
                     ImmutableMap.of("idTo", idTo), ELEMENT_ORDERED_SET_EXTRACTOR
                 );
         } catch(EmptyResultDataAccessException e) {
@@ -836,14 +828,14 @@ public class ElementService {
         }
     }
 
-    public OrderedSet<Set<Element>> getEndpointsOfForEach(OrderedSet<Long> ids) {
+    public List<OrderedSet<Element>> getEndpointsOfForEach(OrderedSet<Long> ids) {
         return databaseService
             .getJdbcTemplate()
             .query(
                 "SELECT " +
-                    "ids.column_0 AS idElement" +
-                    "j.id AS idEndpoint " +
-                    "j.a AS a " +
+                    "ids.column_0 AS idElement, " +
+                    "j.id AS idEndpoint, " +
+                    "j.a AS a, " +
                     "j.b AS b " +
                 "FROM (" +
                     "VALUES " +
@@ -852,24 +844,27 @@ public class ElementService {
                             .map(id -> "ROW(" + id + ")")
                             .collect(Collectors.joining(",")) +
                     ") AS ids LEFT JOIN JGraphElement j ON " +
-                        "j.id != ids.id AND ( " +
-                        "j.a = ids.id OR " +
-                        "j.b = ids.b ",
-                new ResultSetExtractor<OrderedSet<Set<Element>>>() {
+                        "j.id != ids.column_0 AND ( " +
+                        "j.a = ids.column_0 OR " +
+                        "j.b = ids.column_0 " +
+                    ")",
+                new ResultSetExtractor<List<OrderedSet<Element>>>() {
                     @Override
-                    public OrderedSet<Set<Element>> extractData(ResultSet rs)
+                    public List<OrderedSet<Element>> extractData(ResultSet rs)
                         throws SQLException, DataAccessException {
 
-                        OrderedSet<Set<Element>> result = new OrderedSet<>();
+                        List<OrderedSet<Element>> result = Lists.newArrayList();
                         long idPrevious = -1;
-                        Set<Element> endpointsForElement = null;
+                        OrderedSet<Element> endpointsForElement = null;
                         while(rs.next()) {
                             long idCurrent = rs.getLong("idElement");
                             Element endpoint = new Element(rs.getLong("idEndpoint"), rs.getLong("a"), rs.getLong("b"));
                             if(idCurrent != idPrevious) {
+                                idPrevious = idCurrent;
                                 endpointsForElement = rs.wasNull() ?
-                                    Sets.newHashSet() :
-                                    Sets.newHashSet(endpoint);
+                                    OrderedSets.empty() :
+                                    OrderedSets.singleton(endpoint);
+                                result.add(endpointsForElement);
                             } else {
                                 endpointsForElement.add(endpoint);
                             }
@@ -881,24 +876,22 @@ public class ElementService {
     }
 
     public long createElement(long a, long b) {
-        long nextId = getNextId();
         databaseService
             .getJdbcTemplate()
             .update(
                 "INSERT INTO JGraphElement (id, a, b) VALUES (" +
-                    nextId + ", " +
-                    createElementRequestValueToSqlInsert(a, nextId) + "," +
-                    createElementRequestValueToSqlInsert(b, nextId) +
+                    nextId.get() + ", " +
+                    createElementRequestValueToSqlInsert(a, nextId.get()) + ", " +
+                    createElementRequestValueToSqlInsert(b, nextId.get()) +
                 ")"
             );
-        return nextId;
+        return nextId.getAndIncrement();
     }
 
-    public OrderedSet<Long> createElements(OrderedSet<CreateElementRequest> requests) {
+    public OrderedSet<Long> createElements(List<CreateElementRequest> requests) {
         AtomicInteger counter = new AtomicInteger();
-        long nextId = getNextId();
         OrderedSet<Long> ids = LongStream
-            .range(nextId, nextId + requests.size())
+            .range(nextId.get(), nextId.get() + requests.size())
             .boxed()
             .collect(Collectors.toCollection(OrderedSet::new));
         databaseService
@@ -909,21 +902,13 @@ public class ElementService {
                     .map(request ->
                         "(" +
                             ids.get(counter.getAndIncrement()) + ", " +
-                            createElementRequestValueToSqlInsert(request.getA(), nextId) + ", " +
-                            createElementRequestValueToSqlInsert(request.getB(), nextId) +
+                            createElementRequestValueToSqlInsert(request.getA(), nextId.get()) + ", " +
+                            createElementRequestValueToSqlInsert(request.getB(), nextId.get()) +
                         ")"
                     ).collect(Collectors.joining(","))
             );
+        nextId.set(nextId.get() + requests.size());
         return ids;
-    }
-
-    private long getNextId() {
-        return databaseService
-            .getJdbcTemplate()
-            .queryForObject(
-                "SELECT MAX(id) + 1 FROM JGraphElement",
-                Long.class
-            );
     }
 
     private String createElementRequestValueToSqlInsert(long value, long nextId) {
@@ -939,7 +924,7 @@ public class ElementService {
             IntStream
                 .range(0, number)
                 .mapToObj(i -> new CreateElementRequest(-i, -i))
-                .collect(Collectors.toCollection(OrderedSet::new))
+                .collect(Collectors.toList())
         );
     }
 
@@ -952,7 +937,7 @@ public class ElementService {
             IntStream
                 .range(0, howMany)
                 .mapToObj(i -> new CreateElementRequest(from, -1 * i))
-                .collect(Collectors.toCollection(OrderedSet::new))
+                .collect(Collectors.toList())
         );
     }
 
@@ -965,22 +950,20 @@ public class ElementService {
             IntStream
                 .range(0, howMany)
                 .mapToObj(i -> new CreateElementRequest(-1 * i, to))
-                .collect(Collectors.toCollection(OrderedSet::new))
+                .collect(Collectors.toList())
         );
     }
 
-    public long createLoopOn(long on) {
-        return createElement(on, on);
+    public long createLoopOn(long idOn) {
+        return createElement(idOn, idOn);
     }
 
-    public OrderedSet<Long> createLoopsOn(long on, int howMany) {
-        return OrderedSets.with(
-            createElements(
-                IntStream
-                    .range(0, howMany)
-                    .mapToObj(i -> new CreateElementRequest(on, on))
-                    .collect(Collectors.toCollection(OrderedSet::new))
-            )
+    public OrderedSet<Long> createLoopsOn(long idOn, int howMany) {
+        return createElements(
+            IntStream
+                .range(0, howMany)
+                .mapToObj(i -> new CreateElementRequest(idOn, idOn))
+                .collect(Collectors.toList())
         );
     }
 
@@ -1048,12 +1031,12 @@ public class ElementService {
      */
     public void seed() {
         deleteElements(getAllIds());
-        JdbcTemplate jdbcTemplate = databaseService.getJdbcTemplate();
-        jdbcTemplate.update(
-            "ALTER TABLE JGraphElement AUTO_INCREMENT = 1;"
+        databaseService
+            .getNamedParameterJdbcTemplate()
+            .update(
+                "INSERT INTO JGraphElement (id, a, b) VALUES (:idSeed, :idSeed, :idSeed)",
+                ImmutableMap.of("idSeed", Elements.ID_SEED)
         );
-        jdbcTemplate.update(
-            "INSERT INTO JGraphElement (a, b) VALUES (1, 1);"
-        );
+        nextId = new AtomicLong(Elements.ID_SEED + 1);
     }
 }

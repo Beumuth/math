@@ -2,6 +2,7 @@ package com.beumuth.math.core.jgraph.element;
 
 import com.beumuth.math.client.jgraph.Element;
 import com.beumuth.math.client.settheory.orderedset.OrderedSet;
+import com.beumuth.math.client.settheory.orderedset.OrderedSets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,8 +19,8 @@ public class MockElementService {
         return id;
     }
 
-    public Set<Long> idNonexistentMultiple(int number) {
-        Set<Long> ids = elementService.createNodes(number);
+    public OrderedSet<Long> idNonexistentMultiple(int number) {
+        OrderedSet<Long> ids = elementService.createNodes(number);
         elementService.deleteElements(ids);
         return ids;
     }
@@ -63,26 +64,34 @@ public class MockElementService {
     }
 
     public OrderedSet<Element> nodes(int number) {
-        return elementService.getElements(
-            elementService.createNodes(number)
+        return OrderedSets.with(
+            elementService.getElements(
+                elementService.createNodes(number)
+            )
         );
     }
 
     public OrderedSet<Element> pendantsFrom(long idFrom, int number) {
-        return elementService.getElements(
-            elementService.createPendantsFrom(idFrom, number)
+        return OrderedSets.with(
+            elementService.getElements(
+                elementService.createPendantsFrom(idFrom, number)
+            )
         );
     }
 
     public OrderedSet<Element> pendantsTo(long idTo, int number) {
-        return elementService.getElements(
-            elementService.createPendantsTo(idTo, number)
+        return OrderedSets.with(
+            elementService.getElements(
+                elementService.createPendantsTo(idTo, number)
+            )
         );
     }
 
     public OrderedSet<Element> loopsOn(long idOn, int number) {
-        return elementService.getElements(
-            elementService.createLoopsOn(idOn, number)
+        return OrderedSets.with(
+            elementService.getElements(
+                elementService.createLoopsOn(idOn, number)
+            )
         );
     }
 }

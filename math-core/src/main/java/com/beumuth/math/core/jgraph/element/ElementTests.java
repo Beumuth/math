@@ -233,9 +233,9 @@ public class ElementTests {
     }
     
     @Test
-    public void doesElementExistWithAOrBTest_AAndBSame_doesNotExist_shouldReturnTrue() {
+    public void doesElementExistWithAOrBTest_AAndBSame_doesNotExist_shouldReturnFalse() {
         long idNonexistent = mockElementService.idNonexistent();
-        assertTrue(
+        assertFalse(
             elementClient.doesElementExistWithAOrB(idNonexistent, idNonexistent)
         );
     }
@@ -272,15 +272,15 @@ public class ElementTests {
 
     @Test
     public void doesElementExistWithAAndBTest_existsWithAAndB_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        long idPendantFrom = elementService.createPendantFrom(idNode);
-        long idPendantTo = elementService.createPendantTo(idNode);
+        long idNodeA = elementService.createNode();
+        long idNodeB = elementService.createNode();
+        long idEdge = elementService.createElement(idNodeA, idNodeB);
         try {
             assertTrue(
-                elementClient.doesElementExistWithAAndB(idPendantTo, idPendantFrom)
+                elementClient.doesElementExistWithAAndB(idNodeA, idNodeB)
             );
         } finally {
-            elementService.deleteElements(Sets.newHashSet(idNode, idPendantFrom, idPendantTo));
+            elementService.deleteElements(Sets.newHashSet(idNodeA, idNodeB, idEdge));
         }
     }
 
@@ -306,9 +306,9 @@ public class ElementTests {
     }
 
     @Test
-    public void doesElementExistWithAAndBTest_AAndBSame_doesNotExist_shouldReturnTrue() {
+    public void doesElementExistWithAAndBTest_AAndBSame_doesNotExist_shouldReturnFalse() {
         long idNonexistent = mockElementService.idNonexistent();
-        assertTrue(
+        assertFalse(
             elementClient.doesElementExistWithAAndB(idNonexistent, idNonexistent)
         );
     }
@@ -359,7 +359,7 @@ public class ElementTests {
 
     @Test
     public void areElementsNodesTest_emptyList_shouldReturnEmptyOrderedSet() {
-        assertEquals(OrderedSets.empty(), elementClient.areElementsNodes(OrderedSets.empty()));
+        assertEquals(Collections.emptyList(), elementClient.areElementsNodes(OrderedSets.empty()));
     }
 
     @Test
@@ -415,7 +415,7 @@ public class ElementTests {
         );
         try {
             assertEquals(
-                OrderedSets.with(true, false, false, false, false, true),
+                Lists.newArrayList(true, false, false, false, false, true),
                 elementClient.areElementsNodes(idElements)
             );
         } finally {
@@ -466,7 +466,7 @@ public class ElementTests {
         long idNode = elementService.createNode();
         long idNonexistent = mockElementService.idNonexistent();
         try {
-            elementClient.isElementPendantFrom(idNode, idNonexistent);
+            elementClient.isElementPendantFrom(idNonexistent, idNode);
             fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idNonexistent + "");
@@ -480,7 +480,7 @@ public class ElementTests {
         long idNode = elementService.createNode();
         try {
             assertEquals(
-                OrderedSets.empty(),
+                Collections.emptyList(),
                 elementClient.areElementsPendantsFrom(idNode, OrderedSets.empty())
             );
         } finally {
@@ -495,7 +495,7 @@ public class ElementTests {
         try {
             assertEquals(
                 Collections.singletonList(true),
-                elementClient.areElementsPendantsFrom(idPendantFrom, OrderedSets.singleton(idNode))
+                elementClient.areElementsPendantsFrom(idNode, OrderedSets.singleton(idPendantFrom))
             );
         } finally {
             elementService.deleteElement(idPendantFrom);
@@ -612,7 +612,7 @@ public class ElementTests {
         long idNode = elementService.createNode();
         long idNonexistent = mockElementService.idNonexistent();
         try {
-            elementClient.isElementPendantTo(idNode, idNonexistent);
+            elementClient.isElementPendantTo(idNonexistent, idNode);
             fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idNonexistent + "");
@@ -626,7 +626,7 @@ public class ElementTests {
         long idNode = elementService.createNode();
         try {
             assertEquals(
-                OrderedSets.empty(),
+                Collections.emptyList(),
                 elementClient.areElementsPendantsTo(idNode, OrderedSets.empty())
             );
         } finally {
@@ -641,7 +641,7 @@ public class ElementTests {
         try {
             assertEquals(
                 Collections.singletonList(true),
-                elementClient.areElementsPendantsTo(idPendantTo, OrderedSets.singleton(idNode))
+                elementClient.areElementsPendantsTo(idNode, OrderedSets.singleton(idPendantTo))
             );
         } finally {
             elementService.deleteElement(idPendantTo);
@@ -758,7 +758,7 @@ public class ElementTests {
         long idNode = elementService.createNode();
         long idNonexistent = mockElementService.idNonexistent();
         try {
-            elementClient.isElementLoopOn(idNode, idNonexistent);
+            elementClient.isElementLoopOn(idNonexistent, idNode);
             fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idNonexistent + "");
@@ -772,7 +772,7 @@ public class ElementTests {
         long idNode = elementService.createNode();
         try {
             assertEquals(
-                OrderedSets.empty(),
+                Collections.emptyList(),
                 elementClient.areElementsLoopsOn(idNode, OrderedSets.empty())
             );
         } finally {
@@ -787,7 +787,7 @@ public class ElementTests {
         try {
             assertEquals(
                 Collections.singletonList(true),
-                elementClient.areElementsLoopsOn(idLoopOn, OrderedSets.singleton(idNode))
+                elementClient.areElementsLoopsOn(idNode, OrderedSets.singleton(idLoopOn))
             );
         } finally {
             elementService.deleteElement(idLoopOn);
@@ -849,7 +849,7 @@ public class ElementTests {
         idElements.add(elementService.createElement(idNode, idElements.get(1)));
         try {
             assertEquals(
-                OrderedSets.with(
+                Lists.newArrayList(
                     false,
                     true, true, true, true, true,
                     false, false, false
@@ -885,19 +885,13 @@ public class ElementTests {
     }
 
     @Test
-    public void isElementEndpointTest_doesNotExist_shouldReturn404() {
-        long idNonexistent = mockElementService.idNonexistent();
-        try {
-            elementClient.isElementEndpoint(idNonexistent);
-            fail();
-        } catch(FeignException e) {
-            assertExceptionLike(e, 404, idNonexistent + "");
-        }
+    public void isElementEndpointTest_doesNotExist_shouldReturnFalse() {
+        assertFalse(elementClient.isElementEndpoint(mockElementService.idNonexistent()));
     }
 
     @Test
     public void areElementsEndpointsTest_emptyList_shouldReturnEmptyOrderedSet() {
-        assertEquals(OrderedSets.empty(), elementClient.areElementsEndpoints(OrderedSets.empty()));
+        assertEquals(Collections.emptyList(), elementClient.areElementsEndpoints(OrderedSets.empty()));
     }
 
     @Test
@@ -921,7 +915,7 @@ public class ElementTests {
         long idNode = elementService.createNode();
         try {
             assertEquals(
-                Collections.singletonList(true),
+                Collections.singletonList(false),
                 elementClient.areElementsEndpoints(OrderedSets.with(idNode))
             );
         } finally {
@@ -931,16 +925,10 @@ public class ElementTests {
 
     @Test
     public void areElementsEndpointsTest_oneElement_doesNotExist_shouldReturnFalse() {
-        long idNonexistent = mockElementService.idNonexistent();
-        try {
-            assertEquals(
-                Collections.singletonList(false),
-                elementClient.areElementsEndpoints(OrderedSets.singleton(idNonexistent))
-            );
-            fail();
-        } catch(FeignException e) {
-            assertExceptionLike(e, 400, idNonexistent + "");
-        }
+        assertEquals(
+            Collections.singletonList(false),
+            elementClient.areElementsEndpoints(OrderedSets.singleton(mockElementService.idNonexistent()))
+        );
     }
     
     @Test
@@ -956,7 +944,7 @@ public class ElementTests {
         );
         try {
             assertEquals(
-                OrderedSets.with(
+                Lists.newArrayList(
                     true, true, true, false, false, false
                 ),
                 elementClient.areElementsEndpoints(idElements)
@@ -1087,7 +1075,7 @@ public class ElementTests {
             idLoopOnA, idLoopOnB
         );
         try {
-            assertEquals(idElements.size(), elementClient.numElementsWithAOrB(idNodeA, idEdge));
+            assertEquals(4, elementClient.numElementsWithAOrB(idNodeA, idEdge));
         } finally {
             elementService.deleteElements(idElements);
         }
@@ -1101,7 +1089,7 @@ public class ElementTests {
 
     @Test
     public void numElementsWithAOrBTest_aAndBSame_oneExists_shouldReturnOne() {
-        long idNode = mockElementService.idNonexistent();
+        long idNode = elementService.createNode();
         long idPendant = elementService.createPendantFrom(idNode);
         try {
             assertEquals(1, elementClient.numElementsWithAOrB(idPendant, idPendant));
@@ -1210,7 +1198,7 @@ public class ElementTests {
 
     @Test
     public void numElementsWithAAndBTest_aAndBSame_noneExist_shouldReturnZero() {
-        long idNode = mockElementService.idNonexistent();
+        long idNode = elementService.createNode();
         long idPendant = elementService.createPendantFrom(idNode);
         try {
             assertEquals(0, elementClient.numElementsWithAAndB(idPendant, idPendant));
@@ -1243,37 +1231,35 @@ public class ElementTests {
     }
 
     @Test
-    public void numNodesTest_noneExist_shouldReturnZero() {
-        elementService.deleteElements(elementService.getAllIds());
-        assertEquals(0, elementClient.numNodes());
-        elementService.seed();
+    public void numNodesTest_noneAdded_shouldReturnOne() { //One because the seed node
+        assertEquals(1, elementClient.numNodes());
     }
 
     @Test
-    public void numNodesTest_oneExists_shouldReturnOne() {
+    public void numNodesTest_oneAdded_shouldReturnTwo() {   //Two because the seed node
         long idNode = elementService.createNode();
         try {
-            assertEquals(1, elementClient.numNodes());
+            assertEquals(2, elementClient.numNodes());
         } finally {
             elementService.deleteElement(idNode);
         }
     }
 
     @Test
-    public void numNodesTest_nExist_shouldReturnN() {
-        long idNodeA = elementService.createNode();
-        long idNodeB = elementService.createNode();
+    public void numNodesTest_nAdded_shouldReturnNPlusOne() {
+        long idNodeA = elementService.createNode(); //1
+        long idNodeB = elementService.createNode(); //2
         OrderedSet<Long> idElements = OrderedSets.with(
             idNodeA,
             idNodeB,
-            elementService.createNode(),
+            elementService.createNode(), //3
             elementService.createPendantFrom(idNodeA),
             elementService.createPendantTo(idNodeA),
             elementService.createLoopOn(idNodeA),
             elementService.createElement(idNodeA, idNodeB)
         );
         try {
-            assertEquals(3, elementClient.numNodes());
+            assertEquals(4, elementClient.numNodes()); //Plus the seed node - 4
         } finally {
             elementService.deleteElements(idElements);
         }
@@ -1380,11 +1366,11 @@ public class ElementTests {
     @Test
     public void numLoopsOnTest_oneExists_shouldReturnOne() {
         long idNode = elementService.createNode();
-        long idPendantFrom = elementService.createPendantTo(idNode);
+        long idLoopOn = elementService.createLoopOn(idNode);
         try {
             assertEquals(1, elementClient.numLoopsOn(idNode));
         } finally {
-            elementService.deleteElements(Sets.newHashSet(idNode, idPendantFrom));
+            elementService.deleteElements(Sets.newHashSet(idNode, idLoopOn));
         }
     }
 
@@ -1443,18 +1429,19 @@ public class ElementTests {
     }
     
     @Test
-    public void getAllIdsTest_oneExists_shouldBeReturned() {
+    public void getAllIdsTest_oneExists_shouldBeReturnedWithSeed() {
         long idNode = elementService.createNode();
         try {
-            assertEquals(OrderedSets.singleton(idNode), elementClient.getAllIds());
+            assertEquals(OrderedSets.with(Elements.ID_SEED, idNode), elementClient.getAllIds());
         } finally {
             elementService.deleteElement(idNode);
         }
     }
     
     @Test
-    public void getAllIdsTest_manyExist_shouldBeReturned() {
-        Set<Long> idNodes = elementService.createNodes(10);
+    public void getAllIdsTest_manyExist_shouldBeReturnedWithSeed() {
+        OrderedSet<Long> idNodes = elementService.createNodes(10);
+        idNodes.add(0, Elements.ID_SEED);
         try {
             assertEquals(idNodes, elementClient.getAllIds());
         } finally {
@@ -1474,15 +1461,14 @@ public class ElementTests {
 
     @Test
     public void getIdsTest_someExist_shouldReturnThem() {
-        OrderedSet<Long> idElements = OrderedSets.with(elementService.createNodes(5));
-        OrderedSet<Long> idAll = OrderedSets.with(mockElementService.idNonexistentMultiple(5));
-        OrderedSet<Long> expected = OrderedSets.with(idElements);
+        OrderedSet<Long> idAll = elementService.createNodes(5);
+        List<Long> expected = Lists.newArrayList(idAll);
         expected.addAll(Collections.nCopies(5, null));
-        idAll.addAll(idElements);
+        idAll.addAll(mockElementService.idNonexistentMultiple(5));
         try {
             assertEquals(expected, elementClient.getIds(idAll));
         } finally {
-            elementService.deleteElements(idElements);
+            elementService.deleteElements(idAll);
         }
     }
 
@@ -1491,8 +1477,8 @@ public class ElementTests {
         long idElement = elementService.createNode();
         OrderedSet<Long> idAll = OrderedSets.with(mockElementService.idNonexistentMultiple(5));
         idAll.add(idElement);
-        OrderedSet<Long> expected = OrderedSets.with(idElement);
-        expected.addAll(Collections.nCopies(5, null));
+        List<Long> expected = Lists.newArrayList(Collections.nCopies(5, null));
+        expected.add(idElement);
         try {
             assertEquals(expected, elementClient.getIds(idAll));
         } finally {
@@ -1550,12 +1536,12 @@ public class ElementTests {
 
     @Test
     public void getElementsTest_someExist_shouldReturnThem() {
-        OrderedSet<Element> elements = OrderedSets.with(mockElementService.nodes(5));
+        List<Element> elements = Lists.newArrayList(mockElementService.nodes(5));
         OrderedSet<Long> idElements = elements
             .stream()
             .map(Element::getId)
             .collect(Collectors.toCollection(OrderedSets::with));
-        elements.addAll(0, OrderedSets.nCopies(5, null));
+        elements.addAll(0, Collections.nCopies(5, null));
         OrderedSet<Long> idAll = OrderedSets.with(mockElementService.idNonexistentMultiple(5));
         idAll.addAll(idElements);
         try {
@@ -1568,7 +1554,7 @@ public class ElementTests {
     @Test
     public void getElementsTest_oneExists_shouldReturnIt() {
         Element element = mockElementService.node();
-        OrderedSet<Element> elements = OrderedSets.with(element);
+        List<Element> elements = Lists.newArrayList(element);
         elements.addAll(Collections.nCopies(5, null));
         OrderedSet<Long> idAll = OrderedSets.with(mockElementService.idNonexistentMultiple(5));
         idAll.add(element.getId());
@@ -1583,7 +1569,7 @@ public class ElementTests {
     public void getElementsTest_noneExist_shouldReturnAllNulls() {
         OrderedSet<Long> idNonexistents = OrderedSets.with(mockElementService.idNonexistentMultiple(10));
         assertEquals(
-            OrderedSets.nCopies(10, null),
+            Collections.nCopies(10, null),
             elementClient.getElements(idNonexistents)
         );
     }
@@ -1609,8 +1595,8 @@ public class ElementTests {
     }
 
     @Test
-    public void getElementsTest_emptyListPassed_shouldReturnEmptyOrderedSet() {
-        assertEquals(OrderedSets.empty(), elementClient.getElements(OrderedSets.empty()));
+    public void getElementsTest_emptyListPassed_shouldReturnSeed() {
+        assertEquals(OrderedSets.singleton(Elements.SEED), elementClient.getElements(OrderedSets.empty()));
     }
 
     @Test
@@ -1683,16 +1669,20 @@ public class ElementTests {
         long idPendantToB = elementService.createPendantTo(idNodeB);
         long idLoopOnA = elementService.createLoopOn(idNodeA);
         long idLoopOnB = elementService.createLoopOn(idNodeB);
-        OrderedSet<Long> idAll = OrderedSets.with(
-            idNodeA, idNodeB, idEdge,
-            idPendantFromA, idPendantFromB,
-            idPendantToA, idPendantToB,
-            idLoopOnA, idLoopOnB
-        );
         try {
-            assertEquals(idAll, elementClient.getIdsWithAOrB(idNodeA, idEdge));
+            assertEquals(
+                OrderedSets.with(idNodeA, idEdge, idPendantFromA, idLoopOnA),
+                elementClient.getIdsWithAOrB(idNodeA, idEdge)
+            );
         } finally {
-            elementService.deleteElements(idAll);
+            elementService.deleteElements(
+                OrderedSets.with(
+                    idNodeA, idNodeB, idEdge,
+                    idPendantFromA, idPendantFromB,
+                    idPendantToA, idPendantToB,
+                    idLoopOnA, idLoopOnB
+                )
+            );
         }
     }
 
@@ -1704,7 +1694,7 @@ public class ElementTests {
 
     @Test
     public void getIdsWithAOrBTest_aAndBSame_oneExists_shouldReturnIt() {
-        long idNode = mockElementService.idNonexistent();
+        long idNode = elementService.createNode();
         long idPendant = elementService.createPendantFrom(idNode);
         try {
             assertEquals(Collections.singleton(idPendant), elementClient.getIdsWithAOrB(idPendant, idPendant));
@@ -1813,7 +1803,7 @@ public class ElementTests {
 
     @Test
     public void getIdsWithAAndBTest_aAndBSame_noneExist_shouldReturnEmptyList() {
-        long idNode = mockElementService.idNonexistent();
+        long idNode = elementService.createNode();
         long idPendant = elementService.createPendantFrom(idNode);
         try {
             assertTrue(elementClient.getIdsWithAAndB(idPendant, idPendant).isEmpty());
@@ -1846,25 +1836,27 @@ public class ElementTests {
     }
     
     @Test
-    public void getIdsNodesTest_noneExist_shouldReturnEmpty() {
-        assertEquals(OrderedSets.empty(), elementClient.getIdsNodes());
+    public void getIdsNodesTest_noneExist_shouldReturnSeed() {
+        assertEquals(OrderedSets.singleton(Elements.ID_SEED), elementClient.getIdsNodes());
     }
     
     @Test
-    public void getIdsNodesTest_oneExists_shouldBeReturned() {
+    public void getIdsNodesTest_oneExists_shouldBeReturnedWithSeed() {
         long idNode = elementService.createNode();
         try {
-            assertEquals(OrderedSets.singleton(idNode), elementService.getIdsNodes());
+            assertEquals(OrderedSets.with(Elements.ID_SEED, idNode), elementService.getIdsNodes());
         } finally {
             elementService.deleteElement(idNode);
         }
     }
     
     @Test
-    public void getIdsNodesTest_manyExist_shouldBeReturned() {
-        Set<Long> idsNodes = elementService.createNodes(5);
+    public void getIdsNodesTest_manyExist_shouldBeReturnedWithSeed() {
+        OrderedSet<Long> idsNodes = elementService.createNodes(5);
+        OrderedSet<Long> expected = OrderedSets.singleton(Elements.ID_SEED);
+        expected.addAll(idsNodes);
         try {
-            assertEquals(idsNodes, elementService.getIdsNodes());
+            assertEquals(expected, elementService.getIdsNodes());
         } finally {
             elementService.deleteElements(idsNodes);
         }
@@ -1927,11 +1919,11 @@ public class ElementTests {
     @Test
     public void getIdsPendantsToTest_oneExists_shouldBeReturned() {
         long idNode = elementService.createNode();
-        long idPendant = elementService.createPendantFrom(idNode);
+        long idPendantTo = elementService.createPendantTo(idNode);
         try {
-            assertEquals(OrderedSets.singleton(idPendant), elementClient.getIdsPendantsTo(idNode));
+            assertEquals(OrderedSets.singleton(idPendantTo), elementClient.getIdsPendantsTo(idNode));
         } finally {
-            elementService.deleteElements(Sets.newHashSet(idNode, idPendant));
+            elementService.deleteElements(Sets.newHashSet(idNode, idPendantTo));
         }
     }
 
@@ -2057,7 +2049,10 @@ public class ElementTests {
 
     @Test
     public void getIdsEndpointsOfForEachTest_emptyOrderedSet_shouldReturnedEmptyOrderedSet() {
-        assertEquals(OrderedSets.<Set<Long>>empty(), elementClient.getIdsEndpointsOfForEach(OrderedSets.empty()));
+        assertEquals(
+            Collections.<OrderedSet<Long>>emptyList(),
+            elementClient.getIdsEndpointsOfForEach(OrderedSets.empty())
+        );
     }
 
     @Test
@@ -2066,7 +2061,7 @@ public class ElementTests {
         try {
             assertEquals(
                 OrderedSets.singleton(Collections.emptySet()),
-                elementClient.getEndpointsOfForEach(OrderedSets.singleton(idNode))
+                elementClient.getIdsEndpointsOfForEach(OrderedSets.singleton(idNode))
             );
         } finally {
             elementService.deleteElement(idNode);
@@ -2131,11 +2126,17 @@ public class ElementTests {
             idPendantsTo,
             idLoopsOn,
             idEdges
-        );
+        ).stream()
+        .flatMap(Collection::stream)
+        .collect(Collectors.toCollection(OrderedSets::with));
         try {
             assertEquals(
-                OrderedSets.with(
-                    OrderedSets.with(idPendantsFrom, idPendantsTo, idLoopsOn, idEdges),
+                Lists.newArrayList(
+                    OrderedSets
+                        .with(idPendantsFrom, idPendantsTo, idLoopsOn, idEdges)
+                        .stream()
+                        .flatMap(Collection::stream)
+                        .collect(Collectors.toCollection(OrderedSet::new)),
                     Sets.newHashSet(idEdges),
                     Collections.emptySet(),
                     Collections.emptySet(), Collections.emptySet(), Collections.emptySet(),
@@ -2143,7 +2144,7 @@ public class ElementTests {
                     Collections.emptySet(), Collections.emptySet(), Collections.emptySet(),
                     Collections.emptySet(), Collections.emptySet()
                 ),
-                elementClient.getIdsEndpointsOfForEach(OrderedSets.singleton(idNodeA))
+                elementClient.getIdsEndpointsOfForEach(idAllElements)
             );
         } finally {
             elementService.deleteElements(idAllElements);
@@ -2158,18 +2159,19 @@ public class ElementTests {
     }
 
     @Test
-    public void getAllElementsTest_oneExists_shouldBeReturned() {
+    public void getAllElementsTest_oneExists_shouldBeReturnedWithSeed() {
         Element element = mockElementService.node();
         try {
-            assertEquals(OrderedSets.singleton(element), elementClient.getAllElements());
+            assertEquals(OrderedSets.with(Elements.SEED, element), elementClient.getAllElements());
         } finally {
             elementService.deleteElement(element.getId());
         }
     }
 
     @Test
-    public void getAllElementsTest_manyExist_shouldBeReturned() {
-        Set<Element> elements = mockElementService.nodes(5);
+    public void getAllElementsTest_manyExist_shouldBeReturnedWithSeed() {
+        OrderedSet<Element> elements = mockElementService.nodes(5);
+        elements.add(0, Elements.SEED);
         try {
             assertEquals(elements, elementClient.getAllElements());
         } finally {
@@ -2287,7 +2289,12 @@ public class ElementTests {
             )
         );
         try {
-            assertEquals(allElements, elementClient.getElementsWithAOrB(idNodeA, idEdge));
+            assertEquals(
+                elementService.getElements(
+                    OrderedSets.with(idNodeA, idEdge, idPendantFromA, idLoopOnA)
+                ),
+                elementClient.getElementsWithAOrB(idNodeA, idEdge)
+            );
         } finally {
             elementService.deleteElements(
                 allElements
@@ -2306,7 +2313,7 @@ public class ElementTests {
 
     @Test
     public void getElementsWithAOrBTest_aAndBSame_oneExists_shouldReturnIt() {
-        long idNode = mockElementService.idNonexistent();
+        long idNode = elementService.createNode();
         Element pendant  = elementService.getElement(elementService.createPendantFrom(idNode));
         try {
             assertEquals(
@@ -2416,8 +2423,10 @@ public class ElementTests {
         long idPendantToB = elementService.createPendantTo(idNodeB);
         long idLoopOnA = elementService.createLoopOn(idNodeA);
         long idLoopOnB = elementService.createLoopOn(idNodeB);
-        OrderedSet<Element> expected = elementService.getElements(
-            OrderedSets.with(idEdgeAB, idEdgeAB2)
+        OrderedSet<Element> expected = OrderedSets.with(
+            elementService.getElements(
+                OrderedSets.with(idEdgeAB, idEdgeAB2)
+            )
         );
         try {
             assertEquals(expected, elementClient.getElementsWithAAndB(idNodeA, idNodeB));
@@ -2436,7 +2445,7 @@ public class ElementTests {
 
     @Test
     public void getElementsWithAAndBTest_aAndBSame_noneExist_shouldReturnEmptyList() {
-        long idNode = mockElementService.idNonexistent();
+        long idNode = elementService.createNode();
         long idPendant = elementService.createPendantFrom(idNode);
         try {
             assertTrue(elementClient.getElementsWithAAndB(idPendant, idPendant).isEmpty());
@@ -2478,25 +2487,29 @@ public class ElementTests {
     }
 
     @Test
-    public void getNodesTest_noneExist_shouldReturnEmpty() {
-        assertEquals(OrderedSets.empty(), elementClient.getNodes());
+    public void getNodesTest_noneExist_shouldReturnSeed() {
+        assertEquals(OrderedSets.singleton(Elements.SEED), elementClient.getNodes());
     }
 
     @Test
-    public void getNodesTest_oneExists_shouldBeReturned() {
+    public void getNodesTest_oneExists_shouldBeReturnedWithSeed() {
         Element element = mockElementService.node();
         try {
-            assertEquals(OrderedSets.singleton(element), elementService.getNodes());
+            assertEquals(OrderedSets.with(Elements.SEED, element), elementService.getNodes());
         } finally {
             elementService.deleteElement(element.getId());
         }
     }
 
     @Test
-    public void getNodesTest_manyExist_shouldBeReturned() {
-        Set<Element> nodes = mockElementService.nodes(5);
+    public void getNodesTest_manyExist_shouldBeReturnedWithSeed() {
+        OrderedSet<Element> nodes = mockElementService.nodes(5);
+        nodes.add(0, Elements.SEED);
         try {
-            assertEquals(nodes, elementService.getNodes());
+            assertEquals(
+                OrderedSets.with(nodes),
+                elementService.getNodes()
+            );
         } finally {
             elementService.deleteElements(
                 nodes
@@ -2713,6 +2726,120 @@ public class ElementTests {
     }
 
     @Test
+    public void getEndpointsOfForEachTest_emptyOrderedSet_shouldReturnedEmptyOrderedSet() {
+        assertTrue(elementClient.getEndpointsOfForEach(OrderedSets.empty()).isEmpty());
+    }
+
+    @Test
+    public void getEndpointsOfForEachTest_singleton_noEndpoints_shouldReturnSingletonWithEmptySet() {
+        long idNode = elementService.createNode();
+        try {
+            assertEquals(
+                OrderedSets.singleton(Collections.emptySet()),
+                elementClient.getEndpointsOfForEach(OrderedSets.singleton(idNode))
+            );
+        } finally {
+            elementService.deleteElement(idNode);
+        }
+    }
+
+    @Test
+    public void getEndpointsOfForEachTest_singleton_oneEndpoint_shouldReturnSingletonWithSingletonWithEndpoint() {
+        long idNode = elementService.createNode();
+        Element pendant = mockElementService.pendantFrom(idNode);
+        try {
+            assertEquals(
+                OrderedSets.singleton(Sets.newHashSet(pendant)),
+                elementClient.getEndpointsOfForEach(OrderedSets.singleton(idNode))
+            );
+        } finally {
+            elementService.deleteElements(Sets.newHashSet(idNode, pendant.getId()));
+        }
+    }
+
+    @Test
+    public void getEndpointsOfForEachTest_singleton_manyEndpoints_shouldReturnSingletonWithEndpoints(){
+        long idNodeA = elementService.createNode();
+        long idNodeB = elementService.createNode();
+        OrderedSet<Element> endpoints = OrderedSets.with(
+            elementService.getElements(
+                Stream
+                    .of(
+                        elementService.createPendantsFrom(idNodeA, 5),
+                        elementService.createPendantsTo(idNodeA, 5),
+                        elementService.createLoopsOn(idNodeA, 5),
+                        Collections.singleton(elementService.createElement(idNodeA, idNodeB)),
+                        Collections.singleton(elementService.createElement(idNodeB, idNodeA))
+                    ).flatMap(Collection::stream)
+                    .collect(Collectors.toCollection(OrderedSets::with))
+            )
+        );
+        try {
+            assertEquals(
+                OrderedSets.singleton(endpoints),
+                elementClient.getEndpointsOfForEach(OrderedSets.singleton(idNodeA))
+            );
+        } finally {
+            elementService.deleteElements(Sets.newHashSet(idNodeA, idNodeB));
+            elementService.deleteElements(
+                endpoints
+                    .stream()
+                    .map(Element::getId)
+                    .collect(Collectors.toSet())
+            );
+        }
+    }
+
+    @Test
+    public void getEndpointsOfForEachTest_many_hodgepodge_shouldReturnEndpoints(){
+        Element nodeA = mockElementService.node();
+        Element nodeB = mockElementService.node();
+        Element nodeC = mockElementService.node();
+        OrderedSet<Element> pendantsFrom = mockElementService.pendantsFrom(nodeA.getId(), 3);
+        OrderedSet<Element> pendantsTo = mockElementService.pendantsTo(nodeA.getId(), 3);
+        OrderedSet<Element> loopsOn = mockElementService.pendantsTo(nodeA.getId(), 3);
+        OrderedSet<Element> edges = OrderedSets.with(
+            mockElementService.edge(nodeA.getId(), nodeB.getId()),
+            mockElementService.edge(nodeB.getId(), nodeA.getId())
+        );
+        OrderedSet<Element> allElements = OrderedSets.with(nodeA, nodeB, nodeC);
+        allElements.addAll(pendantsFrom);
+        allElements.addAll(pendantsTo);
+        allElements.addAll(loopsOn);
+        allElements.addAll(edges);
+        try {
+            assertEquals(
+                Lists.newArrayList(
+                    OrderedSets
+                        .with(pendantsFrom, pendantsTo, loopsOn, edges)
+                        .stream()
+                        .flatMap(Collection::stream)
+                        .collect(Collectors.toCollection(OrderedSet::new)),
+                    OrderedSets.with(edges),
+                    Collections.emptySet(),
+                    Collections.emptySet(), Collections.emptySet(), Collections.emptySet(),
+                    Collections.emptySet(), Collections.emptySet(), Collections.emptySet(),
+                    Collections.emptySet(), Collections.emptySet(), Collections.emptySet(),
+                    Collections.emptySet(), Collections.emptySet()
+                ),
+                elementClient.getEndpointsOfForEach(
+                    allElements
+                        .stream()
+                        .map(Element::getId)
+                        .collect(Collectors.toCollection(OrderedSet::new))
+                )
+            );
+        } finally {
+            elementService.deleteElements(
+                allElements
+                    .stream()
+                    .map(Element::getId)
+                    .collect(Collectors.toSet())
+            );
+        }
+    }
+
+    @Test
     public void createElementTest_aAndBExist_shouldBeCreated() {
         long idA = elementService.createNode();
         long idB = elementService.createNode();
@@ -2804,7 +2931,7 @@ public class ElementTests {
 
     @Test
     public void createElementsTest_noElements_shouldReturnEmptyOrderedSet() {
-        assertEquals(OrderedSets.empty(), elementClient.createElements(OrderedSets.empty()));
+        assertEquals(OrderedSets.empty(), elementClient.createElements(Collections.emptyList()));
     }
 
     @Test
@@ -2814,7 +2941,7 @@ public class ElementTests {
         List<Long> idElements = null;
         try {
             idElements  = elementClient.createElements(
-                OrderedSets.with(new CreateElementRequest(idA, idB))
+                Collections.singletonList(new CreateElementRequest(idA, idB))
             );
             assertTrue(
                 1 == idElements.size() &&
@@ -2831,7 +2958,9 @@ public class ElementTests {
 
     @Test
     public void createElementsTest_oneElement_withZeros_nodeShouldBeCreated() {
-        OrderedSet<Long> idElements = elementClient.createElements(OrderedSets.with(new CreateElementRequest(0, 0)));
+        OrderedSet<Long> idElements = elementClient.createElements(
+            Collections.singletonList(new CreateElementRequest(0, 0))
+        );
         assertEquals(1, idElements.size());
         long idElement = idElements.get(0);
         Element element = elementService.getElement(idElement);
@@ -2844,7 +2973,9 @@ public class ElementTests {
         long idNonexistent = mockElementService.idNonexistent();
         long idNode = elementService.createNode();
         try {
-            elementClient.createElements(OrderedSets.with(new CreateElementRequest(idNonexistent, idNode)));
+            elementClient.createElements(
+                Collections.singletonList(new CreateElementRequest(idNonexistent, idNode))
+            );
             fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 400, idNonexistent + "");
@@ -2858,7 +2989,9 @@ public class ElementTests {
         long idNonexistent = mockElementService.idNonexistent();
         long idNode = elementService.createNode();
         try {
-            elementClient.createElements(OrderedSets.with(new CreateElementRequest(idNode, idNonexistent)));
+            elementClient.createElements(
+                Collections.singletonList(new CreateElementRequest(idNode, idNonexistent))
+            );
             fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 400, idNonexistent + "");
@@ -2870,7 +3003,7 @@ public class ElementTests {
     @Test
     public void createElementsTest_oneElement_aNegative_shouldReturn400() {
         try {
-            elementClient.createElements(OrderedSets.with(new CreateElementRequest(0, -1)));
+            elementClient.createElements(Collections.singletonList(new CreateElementRequest(0, -1)));
             fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 400);
@@ -2886,7 +3019,7 @@ public class ElementTests {
         try {
             List<Element> elements = elementService.getElements(
                 elementClient.createElements(
-                    OrderedSets.with(
+                    Lists.newArrayList(
                         new CreateElementRequest(idNodeA, idNodeA), //Loop on A
                         new CreateElementRequest(idNodeB, idNodeA), //Edge from B to A
                         new CreateElementRequest(-2, -2),           //New node
@@ -2920,7 +3053,7 @@ public class ElementTests {
     @Test
     public void createElementsTest_manyElements_oneInvalid_shouldReturn400() {
         elementClient.createElements(
-            OrderedSets.with(
+            Lists.newArrayList(
                 new CreateElementRequest(0, 0),
                 new CreateElementRequest(-1, 0),
                 new CreateElementRequest(-3, -3) //Invalid
@@ -3164,7 +3297,7 @@ public class ElementTests {
         try {
             element = elementService.getElement(elementClient.createLoopOn(idOn));
             assertEquals(idOn, element.getA());
-            assertEquals(element.getId(), element.getB());
+            assertEquals(idOn, element.getB());
         } finally {
             elementService.deleteElement(idOn);
             if(element != null) {
@@ -3364,7 +3497,7 @@ public class ElementTests {
             );
             fail();
         } catch(FeignException e) {
-            assertExceptionLike(e, 400, Sets.newHashSet(idNode + "", idNonexistent + ""));
+            assertExceptionLike(e, 400, idNonexistent + "");
         } finally {
             elementService.deleteElement(idNode);
         }
@@ -3378,7 +3511,7 @@ public class ElementTests {
             elementClient.updateElement(idNode, new UpdateElementRequest(idNode, idNonexistent));
             fail();
         } catch(FeignException e) {
-            assertExceptionLike(e, 400, Sets.newHashSet(idNode + "", idNonexistent + ""));
+            assertExceptionLike(e, 400, idNonexistent + "");
         } finally {
             elementService.deleteElement(idNode);
         }

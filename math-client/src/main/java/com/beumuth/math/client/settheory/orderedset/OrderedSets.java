@@ -23,19 +23,4 @@ public class OrderedSets {
         Collections.addAll(set, elements);
         return set;
     }
-
-    public static <T> OrderedSet<T> with(Collection<? extends T> ... elementCollections) {
-        OrderedSet<T> set = empty();
-        for(Collection<? extends T> elementCollection : elementCollections) {
-            set.addAll(elementCollection);
-        }
-        return set;
-    }
-
-    public static <T> OrderedSet<T> nCopies(int n, T element) {
-        return IntStream
-            .range(0, n)
-            .mapToObj(i -> element)
-            .collect(Collectors.toCollection(OrderedSets::with));
-    }
 }

@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -83,8 +84,8 @@ public class ElementController {
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/areNodes")
     @ResponseBody
-    public OrderedSet<Boolean> areElementsNodes(@RequestParam(value="ids") OrderedSet<Long> ids) {
-        return ids.isEmpty() ? OrderedSets.empty() : elementService.areElementsNodes(ids);
+    public List<Boolean> areElementsNodes(@RequestParam(value="ids", required=false) OrderedSet<Long> ids) {
+        return ids == null || ids.isEmpty() ? OrderedSets.empty() : elementService.areElementsNodes(ids);
     }
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/element/{id}/isPendantFrom/{idFrom}")
@@ -100,7 +101,7 @@ public class ElementController {
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/arePendantsFrom/{idFrom}")
     @ResponseBody
-    public OrderedSet<Boolean> areElementsPendantsFrom(
+    public List<Boolean> areElementsPendantsFrom(
         @RequestParam(value="ids") OrderedSet<Long> ids,
         @PathVariable("idFrom") long idFrom
     ) throws ClientErrorException {
@@ -125,16 +126,16 @@ public class ElementController {
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/arePendantsTo/{idTo}")
     @ResponseBody
-    public OrderedSet<Boolean> areElementsPendantsTo(
-        @RequestParam(value="ids") OrderedSet<Long> ids,
-        @PathVariable("idTo") long idFrom
+    public List<Boolean> areElementsPendantsTo(
+        @RequestParam(value="ids", required=false) OrderedSet<Long> ids,
+        @PathVariable("idTo") long idTo
     ) throws ClientErrorException {
         Validator
             .returnStatus(NOT_FOUND)
-            .ifFalse(elementService.doesElementExist(idFrom))
-            .withErrorMessage("Element with given id [" + idFrom + "] does not exist")
+            .ifFalse(elementService.doesElementExist(idTo))
+            .withErrorMessage("Element with given id [" + idTo + "] does not exist")
             .execute();
-        return ids.isEmpty() ? OrderedSets.empty() : elementService.areElementsPendantsTo(ids, idFrom);
+        return ids == null || ids.isEmpty() ? OrderedSets.empty() : elementService.areElementsPendantsTo(ids, idTo);
     }
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/element/{id}/isLoopOn/{idOn}")
@@ -150,8 +151,8 @@ public class ElementController {
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/areLoopsOn/{idOn}")
     @ResponseBody
-    public OrderedSet<Boolean> areElementsLoopsOn(
-        @RequestParam(value="ids") OrderedSet<Long> ids,
+    public List<Boolean> areElementsLoopsOn(
+        @RequestParam(value="ids", required=false) OrderedSet<Long> ids,
         @PathVariable("idOn") long idOn
     ) throws ClientErrorException {
         Validator
@@ -159,23 +160,19 @@ public class ElementController {
             .ifFalse(elementService.doesElementExist(idOn))
             .withErrorMessage("Element with given id [" + idOn + "] does not exist")
             .execute();
-        return ids.isEmpty() ? OrderedSets.empty() : elementService.areElementsLoopsOn(ids, idOn);
+        return ids == null || ids.isEmpty() ? OrderedSets.empty() : elementService.areElementsLoopsOn(ids, idOn);
     }
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/element/{id}/isEndpoint")
     @ResponseBody
-    public boolean isElementEndpoint(@PathVariable("id") long id) throws ClientErrorException {
-        try {
-            return elementService.isElementEndpoint(id);
-        } catch(ElementDoesNotExistException e) {
-            throw new ClientErrorException(NOT_FOUND, e.getMessage());
-        }
+    public boolean isElementEndpoint(@PathVariable("id") long id) {
+        return elementService.isElementEndpoint(id);
     }
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/areEndpoints")
     @ResponseBody
-    public OrderedSet<Boolean> areElementsEndpoints(@RequestParam(value="ids") OrderedSet<Long> ids) {
-        return ids.isEmpty() ? OrderedSets.empty() : elementService.areElementsEndpoints(ids);
+    public List<Boolean> areElementsEndpoints(@RequestParam(value="ids", required=false) OrderedSet<Long> ids) {
+        return ids == null || ids.isEmpty() ? OrderedSets.empty() : elementService.areElementsEndpoints(ids);
     }
 
 
@@ -261,13 +258,14 @@ public class ElementController {
 
     @RequestMapping(method=RequestMethod.GET, value="/elements/ids")
     @ResponseBody
-    public OrderedSet<Long> getIds(@RequestParam(value="ids", required=false) OrderedSet<Long> ids) {
-        if(ids == null) {
-            return elementService.getAllIds();
-        } if (ids.isEmpty()) {
-            return OrderedSets.empty();
-        }
-        return elementService.getIds(ids);
+    public List<Long> getIds(@RequestParam(value="ids", required=false) OrderedSet<Long> ids) {
+        return ids == null || ids.isEmpty() ? Collections.emptyList() : elementService.getIds(ids);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/elements/ids/all")
+    @ResponseBody
+    public OrderedSet<Long> getAllIds() {
+        return elementService.getAllIds();
     }
 
     @RequestMapping(method=RequestMethod.GET, value="/elements/ids/with/{a}/or/{b}")
@@ -336,25 +334,25 @@ public class ElementController {
 
     @RequestMapping(method=RequestMethod.GET, value="/elements/endpoints/of/ids")
     @ResponseBody
-    public OrderedSet<OrderedSet<Long>> getIdsEndpointsOfForEach(@RequestParam(value="ids") OrderedSet<Long> ids) {
-        return ids.isEmpty() ? OrderedSets.empty() : elementService.getIdsEndpointsOfForEach(ids);
+    public List<OrderedSet<Long>> getIdsEndpointsOfForEach(@RequestParam(value="ids") OrderedSet<Long> ids) {
+        return ids.isEmpty() ? Collections.emptyList() : elementService.getIdsEndpointsOfForEach(ids);
     }
 
     @RequestMapping(method=RequestMethod.GET, value="/elements")
     @ResponseBody
-    public OrderedSet<Element> getElements(@RequestParam(value="ids", required=false) OrderedSet<Long> ids) {
+    public List<Element> getElements(@RequestParam(value="ids", required=false) OrderedSet<Long> ids) {
         return ids == null || ids.isEmpty() ? elementService.getAllElements() : elementService.getElements(ids);
     }
 
     @RequestMapping(method=RequestMethod.GET, value="/elements/with/{a}/or/{b}")
     @ResponseBody
-    public Set<Element> getElementsWithAOrB(@PathVariable("a") long a, @PathVariable("b") long b) {
+    public OrderedSet<Element> getElementsWithAOrB(@PathVariable("a") long a, @PathVariable("b") long b) {
         return elementService.getElementsWithAOrB(a, b);
     }
 
     @RequestMapping(method=RequestMethod.GET, value="/elements/with/{a}/and/{b}")
     @ResponseBody
-    public Set<Element> getElementsWithAAndB(@PathVariable("a") long a, @PathVariable("b") long b) {
+    public OrderedSet<Element> getElementsWithAAndB(@PathVariable("a") long a, @PathVariable("b") long b) {
         return elementService.getElementsWithAAndB(a, b);
     }
 
@@ -412,11 +410,12 @@ public class ElementController {
 
     @RequestMapping(method=RequestMethod.GET, value="/elements/endpoints/of")
     @ResponseBody
-    public OrderedSet<Set<Element>> getEndpointsOfForEach(@RequestParam(value="ids") OrderedSet<Long> ids) {
-        return ids.isEmpty() ? OrderedSets.empty() : elementService.getEndpointsOfForEach(ids);
+    public List<OrderedSet<Element>> getEndpointsOfForEach(@RequestParam(value="ids") OrderedSet<Long> ids) {
+        return ids.isEmpty() ? Collections.emptyList() : elementService.getEndpointsOfForEach(ids);
     }
 
     @RequestMapping(method=RequestMethod.POST, value="/elements/element")
+    @ResponseBody
     @ResponseStatus(HttpStatus.CREATED)
     public long createElement(CreateElementRequest request) throws ClientErrorException {
         validateCreateElementRequest(request, 1);
@@ -424,8 +423,9 @@ public class ElementController {
     }
 
     @RequestMapping(method=RequestMethod.POST, value="/elements")
+    @ResponseBody
     @ResponseStatus(HttpStatus.CREATED)
-    public OrderedSet<Long> createElements(OrderedSet<CreateElementRequest> requests) throws ClientErrorException {
+    public OrderedSet<Long> createElements(@RequestBody List<CreateElementRequest> requests) throws ClientErrorException {
         for(CreateElementRequest request : requests) {
            validateCreateElementRequest(request, requests.size());
         }
@@ -445,7 +445,7 @@ public class ElementController {
     public OrderedSet<Long> createNodes(@RequestBody int number) throws ClientErrorException {
         Validator
             .returnStatus(BAD_REQUEST)
-            .ifTrue(number <= 0)
+            .ifTrue(number < 0)
             .withErrorMessage("Given request body [" + number + "] must be >= 0")
             .execute();
         return number == 0 ? OrderedSets.empty() : elementService.createNodes(number);
@@ -566,9 +566,15 @@ public class ElementController {
     @RequestMapping(method=RequestMethod.PUT, value="/elements")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateElements(
-        @RequestParam(value="ids") OrderedSet<Long> ids,
+        @RequestParam(value="ids", required=false) OrderedSet<Long> ids,
         @RequestBody List<UpdateElementRequest> requests
     ) throws ClientErrorException {
+        //No ids given?
+        if(ids == null || ids.isEmpty()) {
+            //Nothing to update.
+            return;
+        }
+
         //Ensure that the ids are the same size as the requests
         Validator
             .returnStatus(BAD_REQUEST)
@@ -579,38 +585,35 @@ public class ElementController {
             ).execute();
 
         //Ensure that all of the ids in the request exist
-        OrderedSet<Long> matchingIds = elementService.getIds(ids);
-        if(matchingIds.size() != ids.size()) {
-            ids.removeAll(matchingIds);
-            Validator
-                .returnStatus(NOT_FOUND)
-                .ifFalse(matchingIds.size() == ids.size())
-                .withErrorMessage("Elements with the following ids do not exist: " + ids)
-                .execute();
-        }
+        OrderedSet<Long> idsThatDoNotExist = elementService.getIdsThatDoNotExist(ids);
+        Validator
+            .returnStatus(NOT_FOUND)
+            .ifFalse(idsThatDoNotExist.isEmpty())
+            .withErrorMessage("Elements with the following ids do not exist: " + idsThatDoNotExist)
+            .execute();
 
         //Ensure that Elements with the given a's and b's exist
-        OrderedSet<Long> as = requests //Read as a's
-            .stream()
-            .mapToLong(UpdateElementRequest::getA)
-            .boxed()
-            .collect(Collectors.toCollection(OrderedSet::new));
-        OrderedSet<Long> idExistingAElements = elementService.getIds(as);
-        OrderedSet<Long> bs = requests //Read as b's
-            .stream()
-            .mapToLong(UpdateElementRequest::getB)
-            .boxed()
-            .collect(Collectors.toCollection(OrderedSet::new));
-        OrderedSet<Long> idExistingBElements = elementService.getIds(bs);
-        if(idExistingAElements.size() != as.size() || idExistingBElements.size() != bs.size()) {
-            as.removeAll(idExistingAElements);
-            bs.removeAll(idExistingBElements);
+        OrderedSet<Long> idAsThatDoNotExist = elementService.getIdsThatDoNotExist(
+            requests //Read as a's
+                .stream()
+                .mapToLong(UpdateElementRequest::getA)
+                .boxed()
+                .collect(Collectors.toCollection(OrderedSet::new))
+        );
+        OrderedSet<Long> idBsThatDoNotExist = elementService.getIdsThatDoNotExist(
+            requests //Read as a's
+                .stream()
+                .mapToLong(UpdateElementRequest::getB)
+                .boxed()
+                .collect(Collectors.toCollection(OrderedSet::new))
+        );
+        if(! (idAsThatDoNotExist.isEmpty() && idBsThatDoNotExist.isEmpty())) {
             Validator
                 .returnStatus(BAD_REQUEST)
                 .always()
                 .withErrorMessage(
-                    "Elements with the given a elements do not exist " + as.toString() + "." +
-                    "Elements with the given b elements do not exist " + bs.toString() + "."
+                    "Elements with the given a elements do not exist " + idAsThatDoNotExist.toString() + ". " +
+                    "Elements with the given b elements do not exist " + idBsThatDoNotExist.toString() + "."
                 ).execute();
         }
 
@@ -628,29 +631,32 @@ public class ElementController {
             return;
         }
         //Ensure that no element is connected to or from the element
+        OrderedSet<Element> endpoints = elementService.getEndpointsOf(id);
         Validator
             .returnStatus(CONFLICT)
-            .ifTrue(elementService.isElementEndpoint(id))
-            .withErrorMessage("The Element with id [" + id + "] has nodes connected to it and cannot be deleted")
-            .execute();
+            .ifFalse(endpoints.isEmpty())
+            .withErrorMessage(
+                "The Element with id [" + id + "] has the following elements connected to it and cannot be deleted: " +
+                    endpoints
+            ).execute();
         elementService.deleteElement(id);
     }
 
     @RequestMapping(method=RequestMethod.DELETE, path="/elements")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteElements(@RequestParam(value="ids") Set<Long> ids) throws ClientErrorException {
-        if(ids.isEmpty()) {
+    public void deleteElements(@RequestParam(value="ids", required=false) Set<Long> ids) throws ClientErrorException {
+        if(ids == null || ids.isEmpty()) {
             return;
         }
 
         //Get the ids of elements whose endpoint list is not a subset of the given ids
         OrderedSet<Long> orderedIds = OrderedSets.with(ids);
-        OrderedSet<OrderedSet<Long>> idsEndpointsOfForEach = elementService.getIdsEndpointsOfForEach(orderedIds);
+        List<OrderedSet<Long>> idsEndpointsOfForEach = elementService.getIdsEndpointsOfForEach(orderedIds);
         Map<Long, Set> invalidIds = Maps.newHashMap();
         IntStream
             .range(0, ids.size())
             .forEach(i -> {
-                Set<Long> endpointsNotBeingDeleted = Sets.difference(ids, idsEndpointsOfForEach.get(i)).immutableCopy();
+                Set<Long> endpointsNotBeingDeleted = Sets.difference(idsEndpointsOfForEach.get(i), ids).immutableCopy();
                 if (! endpointsNotBeingDeleted.isEmpty()) {
                     invalidIds.put(orderedIds.get(i), endpointsNotBeingDeleted);
                 }
@@ -668,13 +674,21 @@ public class ElementController {
 
     private void validateCreateElementRequest(CreateElementRequest request, int numRequests)
         throws ClientErrorException {
-
         Validator
             .returnStatus(BAD_REQUEST)
-            .ifTrue(request.getA() <= numRequests || request.getB() <= numRequests)
+            .ifTrue(request.getA() < 0 && -1 * request.getA() >= numRequests)
             .withErrorMessage(
-                "Was given a [" + request.getA() + "] and b [" + request.getB() + "]. " +
-                    "a and b must be >= " + numRequests + "."
+                "Was given a [" + request.getA() + "], which indicates that a is to reference the id of the " +
+                    request.getA() + "th element of this request; but the request only contains " + numRequests +
+                    " elements."
+            ).execute();
+        Validator
+            .returnStatus(BAD_REQUEST)
+            .ifTrue(request.getB() < 0 && -1 * request.getB() >= numRequests)
+            .withErrorMessage(
+                "Was given b [" + request.getB() + "], which indicates that a is to reference the id of the " +
+                    request.getB() + "th element of this request; but the request only contains " + numRequests +
+                    " elements."
             ).execute();
         Validator
             .returnStatus(BAD_REQUEST)
@@ -684,7 +698,7 @@ public class ElementController {
         Validator
             .returnStatus(BAD_REQUEST)
             .ifFalse(request.getB() <= 0 || elementService.doesElementExist(request.getB()))
-            .withErrorMessage("Given b [" + request.getA() + "] does not exist")
+            .withErrorMessage("Given b [" + request.getB() + "] does not exist")
             .execute();
     }
 }

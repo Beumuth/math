@@ -31,13 +31,13 @@ public class ComponentService {
                 databaseService
                     .getNamedParameterJdbcTemplate()
                     .queryForList(
-                        "WITH RECURSIVE neighbors (id, a, b) AS (" +
-                                "SELECT id, a, b FROM Element WHERE id=:id " +
+                        "WITH RECURSIVE neighbors (id) AS (" +
+                                "SELECT id FROM JGraphElement WHERE id=:id " +
                             "UNION ALL " +
-                                "SELECT id, a, b " +
-                                "FROM Element INNER JOIN neighbors " +
-                                  "ON a=id OR b=id" +
-                        ") SELECT id FROM neighbors",
+                                "SELECT j.id " +
+                                    "FROM JGraphElement j INNER JOIN neighbors " +
+                                      "ON j.id != neighbors.id AND (j.a=neighbors.id OR j.b=neighbors.id)" +
+                        ") SELECT DISTINCT id FROM neighbors",
                         ImmutableMap.of("id", id),
                         Long.class
                     )
@@ -58,12 +58,12 @@ public class ComponentService {
                     .getNamedParameterJdbcTemplate()
                     .queryForList(
                         "WITH RECURSIVE neighbors (id, a, b) AS (" +
-                            "SELECT id, a, b FROM Element WHERE id=:id " +
+                                "SELECT id, a, b FROM JGraphElement WHERE id=:id " +
                             "UNION ALL " +
-                            "SELECT id, a, b " +
-                            "FROM Element INNER JOIN neighbors " +
-                            "ON a=id OR b=id" +
-                            ") SELECT * FROM neighbors",
+                                "SELECT j.id, j.a, j.b " +
+                                    "FROM JGraphElement j INNER JOIN neighbors " +
+                                        "ON j.id != neighbors.id AND (j.a = neighbors.id OR j.b = neighbors.id)" +
+                            ") SELECT id, a, b FROM neighbors",
                         ImmutableMap.of("id", id),
                         Element.class
                     )

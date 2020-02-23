@@ -19,9 +19,8 @@ public class OrderedSet<T> implements List<T>, Set<T> {
     }
 
     public OrderedSet(Collection<? extends T> c) {
-        implementation = new ArrayList<>(
-            c instanceof Set ? c : Sets.newHashSet(c)
-        );
+        //Remove duplicates
+        implementation = c.stream().distinct().collect(Collectors.toCollection(ArrayList::new));
     }
 
     @Override
