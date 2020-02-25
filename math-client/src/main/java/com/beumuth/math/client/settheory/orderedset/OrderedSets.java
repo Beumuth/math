@@ -2,8 +2,6 @@ package com.beumuth.math.client.settheory.orderedset;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class OrderedSets {
     public static <T> OrderedSet<T> empty() {

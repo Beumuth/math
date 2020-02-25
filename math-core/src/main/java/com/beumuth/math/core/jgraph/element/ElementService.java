@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -149,17 +148,13 @@ public class ElementService {
     }
 
     public boolean isElementNode(long idElement) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                    "SELECT a=id AND b=id FROM JGraphElement WHERE id=:idElement",
-                    ImmutableMap.of("idElement", idElement),
-                    Boolean.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            throw new ElementDoesNotExistException(idElement);
-        }
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT a=id AND b=id FROM JGraphElement WHERE id=:idElement",
+                ImmutableMap.of("idElement", idElement),
+                Boolean.class
+            );
     }
 
     public List<Boolean> areElementsNodes(OrderedSet<Long> idElements) {
@@ -181,20 +176,16 @@ public class ElementService {
     }
 
     public boolean isElementPendantFrom(long idElement, long idFrom) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                    "SELECT a=:idFrom AND b=id FROM JGraphElement WHERE id=:idElement",
-                    ImmutableMap.of(
-                        "idElement", idElement,
-                        "idFrom", idFrom
-                    ),
-                    Boolean.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            throw new ElementDoesNotExistException(idElement);
-        }
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT a=:idFrom AND b=id FROM JGraphElement WHERE id=:idElement",
+                ImmutableMap.of(
+                    "idElement", idElement,
+                    "idFrom", idFrom
+                ),
+                Boolean.class
+            );
     }
 
     public List<Boolean> areElementsPendantsFrom(OrderedSet<Long> idElements, long idFrom) {
@@ -216,20 +207,16 @@ public class ElementService {
     }
 
     public boolean isElementPendantTo(long idElement, long idTo) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                    "SELECT a=id AND b=:idTo FROM JGraphElement WHERE id=:idElement",
-                    ImmutableMap.of(
-                        "idElement", idElement,
-                        "idTo", idTo
-                    ),
-                    Boolean.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            throw new ElementDoesNotExistException(idElement);
-        }
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT a=id AND b=:idTo FROM JGraphElement WHERE id=:idElement",
+                ImmutableMap.of(
+                    "idElement", idElement,
+                    "idTo", idTo
+                ),
+                Boolean.class
+            );
     }
 
     public List<Boolean> areElementsPendantsTo(OrderedSet<Long> idElements, long idTo) {
@@ -251,20 +238,16 @@ public class ElementService {
     }
 
     public boolean isElementLoopOn(long idElement, long idOn) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                    "SELECT id!=:idOn AND a=:idOn AND b=:idOn FROM JGraphElement WHERE id=:idElement",
-                    ImmutableMap.of(
-                        "idElement", idElement,
-                        "idOn", idOn
-                    ),
-                    Boolean.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            throw new ElementDoesNotExistException(idElement);
-        }
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT id!=:idOn AND a=:idOn AND b=:idOn FROM JGraphElement WHERE id=:idElement",
+                ImmutableMap.of(
+                    "idElement", idElement,
+                    "idOn", idOn
+                ),
+                Boolean.class
+            );
     }
 
     public List<Boolean> areElementsLoopsOn(OrderedSet<Long> idElements, long idOn) {
@@ -443,24 +426,6 @@ public class ElementService {
         }
     }
 
-    /**
-     * Get the number of elements that are an endpoint of the given id. That is, the non-identical elements that have
-     * an a or b with the given id.
-     */
-    public int numElementsEnpointOf(long id) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                    "SELECT COUNT(1) FROM JGraphElement WHERE id != :id AND (a=:id OR b=:id)",
-                    ImmutableMap.of("id", id),
-                    Integer.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            throw new ElementDoesNotExistException(id);
-        }
-    }
-
     public OrderedSet<Long> getAllIds() {
         return databaseService
             .getJdbcTemplate()
@@ -603,17 +568,13 @@ public class ElementService {
      * an a or b with the given id.
      */
     public OrderedSet<Long> getIdsEndpointsOf(long id) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .query(
-                    "SELECT id FROM JGraphElement WHERE id != :id AND (a=:id OR b=:id) ORDER BY id",
-                    ImmutableMap.of("id", id),
-                    ID_ORDERED_SET_EXTRACTOR
-                );
-        } catch(EmptyResultDataAccessException e) {
-            throw new ElementDoesNotExistException(id);
-        }
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .query(
+                "SELECT id FROM JGraphElement WHERE id != :id AND (a=:id OR b=:id) ORDER BY id",
+                ImmutableMap.of("id", id),
+                ID_ORDERED_SET_EXTRACTOR
+            );
     }
 
     public List<OrderedSet<Long>> getIdsEndpointsOfForEach(OrderedSet<Long> ids) {
@@ -665,17 +626,13 @@ public class ElementService {
     }
 
     public Element getElement(long id) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                    "SELECT id, a, b FROM JGraphElement WHERE id=:id",
-                    ImmutableMap.of("id", id),
-                    ROW_MAPPER
-                );
-        } catch(EmptyResultDataAccessException e) {
-            throw new ElementDoesNotExistException(id);
-        }
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT id, a, b FROM JGraphElement WHERE id=:id",
+                ImmutableMap.of("id", id),
+                ROW_MAPPER
+            );
     }
 
     public OrderedSet<Element> getAllElements() {
@@ -706,7 +663,8 @@ public class ElementService {
                             .map(i -> "ROW(" + i + ")")
                             .collect(Collectors.joining(",")) +
                     ") ids LEFT JOIN JGraphElement j " +
-                        "ON ids.column_0 = j.id ",
+                        "ON ids.column_0 = j.id " +
+                "ORDER BY id",
                 ImmutableMap.of("ids", ids),
                 ELEMENT_LIST_EXTRACTOR
             );

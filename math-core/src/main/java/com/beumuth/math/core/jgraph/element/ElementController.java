@@ -75,11 +75,12 @@ public class ElementController {
     @RequestMapping(method=RequestMethod.GET, path="/elements/element/{id}/isNode")
     @ResponseBody
     public boolean isElementNode(@PathVariable("id") long id) throws ClientErrorException {
-        try {
-            return elementService.isElementNode(id);
-        } catch(ElementDoesNotExistException e) {
-            throw new ClientErrorException(NOT_FOUND, e.getMessage());
-        }
+        Validator
+            .returnStatus(NOT_FOUND)
+            .ifFalse(elementService.doesElementExist(id))
+            .withErrorMessage("Element with given id [" + id + "] does not exist")
+            .execute();
+        return elementService.isElementNode(id);
     }
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/areNodes")
@@ -92,17 +93,18 @@ public class ElementController {
     @ResponseBody
     public boolean isElementPendantFrom(@PathVariable("id") long id, @PathVariable("idFrom") long idFrom)
         throws ClientErrorException {
-        try {
-            return elementService.isElementPendantFrom(id, idFrom);
-        } catch(ElementDoesNotExistException e) {
-            throw new ClientErrorException(NOT_FOUND, e.getMessage());
-        }
+        Validator
+            .returnStatus(NOT_FOUND)
+            .ifFalse(elementService.doAllElementsExist(Sets.newHashSet(id, idFrom)))
+            .withErrorMessage("One of the given ids [" + id + ", " + idFrom + " ] does not exist as an Element.")
+            .execute();
+        return elementService.isElementPendantFrom(id, idFrom);
     }
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/arePendantsFrom/{idFrom}")
     @ResponseBody
     public List<Boolean> areElementsPendantsFrom(
-        @RequestParam(value="ids") OrderedSet<Long> ids,
+        @RequestParam(value="ids", required=false) OrderedSet<Long> ids,
         @PathVariable("idFrom") long idFrom
     ) throws ClientErrorException {
         Validator
@@ -117,11 +119,12 @@ public class ElementController {
     @ResponseBody
     public boolean isElementPendantTo(@PathVariable("id") long id, @PathVariable("idTo") long idTo)
         throws ClientErrorException {
-        try {
-            return elementService.isElementPendantTo(id, idTo);
-        } catch(ElementDoesNotExistException e) {
-            throw new ClientErrorException(NOT_FOUND, e.getMessage());
-        }
+        Validator
+            .returnStatus(NOT_FOUND)
+            .ifFalse(elementService.doAllElementsExist(Sets.newHashSet(id, idTo)))
+            .withErrorMessage("One of the given ids [" + id + ", " + idTo + " ] does not exist as an Element.")
+            .execute();
+        return elementService.isElementPendantTo(id, idTo);
     }
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/arePendantsTo/{idTo}")
@@ -142,11 +145,12 @@ public class ElementController {
     @ResponseBody
     public boolean isElementLoopOn(@PathVariable("id") long id, @PathVariable("idOn") long idOn)
         throws ClientErrorException {
-        try {
-            return elementService.isElementLoopOn(id, idOn);
-        } catch(ElementDoesNotExistException e) {
-            throw new ClientErrorException(NOT_FOUND, e.getMessage());
-        }
+        Validator
+            .returnStatus(NOT_FOUND)
+            .ifFalse(elementService.doAllElementsExist(Sets.newHashSet(id, idOn)))
+            .withErrorMessage("One of the given ids [" + id + ", " + idOn + " ] does not exist as an Element.")
+            .execute();
+        return elementService.isElementLoopOn(id, idOn);
     }
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/areLoopsOn/{idOn}")
@@ -249,11 +253,12 @@ public class ElementController {
     @RequestMapping(method=RequestMethod.GET, value="/elements/element/{id}")
     @ResponseBody
     public Element getElement(@PathVariable("id") long id) throws ClientErrorException {
-        try {
-            return elementService.getElement(id);
-        } catch(ElementDoesNotExistException e) {
-            throw new ClientErrorException(NOT_FOUND, e.getMessage());
-        }
+        Validator
+            .returnStatus(NOT_FOUND)
+            .ifFalse(elementService.doesElementExist(id))
+            .withErrorMessage("Element with given idTo [" + id + "] does not exist")
+            .execute();
+        return elementService.getElement(id);
     }
 
     @RequestMapping(method=RequestMethod.GET, value="/elements/ids")
@@ -334,7 +339,9 @@ public class ElementController {
 
     @RequestMapping(method=RequestMethod.GET, value="/elements/endpoints/of/ids")
     @ResponseBody
-    public List<OrderedSet<Long>> getIdsEndpointsOfForEach(@RequestParam(value="ids") OrderedSet<Long> ids) {
+    public List<OrderedSet<Long>> getIdsEndpointsOfForEach(
+        @RequestParam(value="ids", required=false) OrderedSet<Long> ids
+    ) {
         return ids.isEmpty() ? Collections.emptyList() : elementService.getIdsEndpointsOfForEach(ids);
     }
 
@@ -410,14 +417,16 @@ public class ElementController {
 
     @RequestMapping(method=RequestMethod.GET, value="/elements/endpoints/of")
     @ResponseBody
-    public List<OrderedSet<Element>> getEndpointsOfForEach(@RequestParam(value="ids") OrderedSet<Long> ids) {
+    public List<OrderedSet<Element>> getEndpointsOfForEach(
+        @RequestParam(value="ids", required=false) OrderedSet<Long> ids
+    ) {
         return ids.isEmpty() ? Collections.emptyList() : elementService.getEndpointsOfForEach(ids);
     }
 
     @RequestMapping(method=RequestMethod.POST, value="/elements/element")
     @ResponseBody
     @ResponseStatus(HttpStatus.CREATED)
-    public long createElement(CreateElementRequest request) throws ClientErrorException {
+    public long createElement(@RequestBody CreateElementRequest request) throws ClientErrorException {
         validateCreateElementRequest(request, 1);
         return elementService.createElement(request.getA(), request.getB());
     }
@@ -623,11 +632,9 @@ public class ElementController {
     @RequestMapping(method=RequestMethod.DELETE, path="/elements/element/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteElement(@PathVariable long id) throws ClientErrorException {
-        //Get the full element
-        try {
-            elementService.getElement(id);
-        } catch(ElementDoesNotExistException e) {
-            //Does not exist, nothing to do
+        //Does the element already not exist?
+        if(! elementService.doesElementExist(id)) {
+            //Yes. Nothing to do.
             return;
         }
         //Ensure that no element is connected to or from the element

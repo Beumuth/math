@@ -8,7 +8,7 @@ import java.lang.reflect.Type;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class OrderedSetTypeAdapter implements JsonSerializer<OrderedSet>, JsonDeserializer<OrderedSet> {
+public class OrderedSetTypeAdapter<T> implements JsonSerializer<OrderedSet<T>>, JsonDeserializer<OrderedSet<T>> {
     @Override
     public OrderedSet deserialize(
         JsonElement json,

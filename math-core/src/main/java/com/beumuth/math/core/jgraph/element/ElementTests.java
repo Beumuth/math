@@ -10,7 +10,8 @@ import com.beumuth.math.core.internal.client.ClientService;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import feign.FeignException;
-import org.junit.Before;
+import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,20 +43,20 @@ public class ElementTests {
 
     private ElementClient elementClient;
 
-    @Before
+    @BeforeClass
     public void setupTests() {
         elementClient = clientService.getClient(ElementClient.class);
         elementService.seed();
     }
 
+    @After
+    public void cleanupTest() {
+        elementService.seed();
+    }
+
     @Test
     public void doesElementExistTest_doesExist_shouldReturnTrue() {
-        long idElement = elementService.createNode();
-        try {
-            assertTrue(elementClient.doesElementExist(idElement));
-        } finally {
-            elementService.deleteElement(idElement);
-        }
+        assertTrue(elementClient.doesElementExist(elementService.createNode()));
     }
 
     @Test
@@ -80,41 +81,25 @@ public class ElementTests {
 
     @Test
     public void doAnyElementsExist_oneExists_shouldReturnTrue() {
-        long idElement = elementService.createNode();
         Set<Long> idElements = mockElementService.idNonexistentMultiple(9);
-        idElements.add(idElement);
-        try {
-            assertTrue(
-                elementClient.doAnyElementsExist(idElements)
-            );
-        } finally {
-            elementService.deleteElement(idElement);
-        }
+        idElements.add(Elements.ID_SEED);
+        assertTrue(elementClient.doAnyElementsExist(idElements));
     }
 
     @Test
     public void doAnyElementsExist_allExist_shouldReturnTrue() {
-        Set<Long> idElements = elementService.createNodes(10);
-        try {
-            assertTrue(
-                elementClient.doAnyElementsExist(idElements)
-            );
-        } finally {
-            elementService.deleteElements(idElements);
-        }
+        assertTrue(
+            elementClient.doAnyElementsExist(elementService.createNodes(10))
+        );
     }
 
     @Test
     public void doAnyElementsExist_emptyList_shouldReturn400() {
-        Set<Long> idElements = elementService.createNodes(10);
         try {
-            assertTrue(
-                elementClient.doAnyElementsExist(idElements)
-            );
+            elementClient.doAnyElementsExist(elementService.createNodes(10));
+            fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 400, "empty");
-        } finally {
-            elementService.deleteElements(idElements);
         }
     }
     
@@ -129,107 +114,73 @@ public class ElementTests {
 
     @Test
     public void doAllElementsExist_oneExists_shouldReturnFalse() {
-        long idElement = elementService.createNode();
         Set<Long> idElements = mockElementService.idNonexistentMultiple(9);
-        idElements.add(idElement);
-        try {
-            assertFalse(
-                elementClient.doAllElementsExist(idElements)
-            );
-        } finally {
-            elementService.deleteElement(idElement);
-        }
+        idElements.add(Elements.ID_SEED);
+        assertFalse(elementClient.doAllElementsExist(idElements));
     }
 
     @Test
     public void doAllElementsExist_allExist_shouldReturnTrue() {
-        Set<Long> idElements = elementService.createNodes(10);
-        try {
-            assertTrue(
-                elementClient.doAllElementsExist(idElements)
-            );
-        } finally {
-            elementService.deleteElements(idElements);
-        }
+        assertTrue(
+            elementClient.doAllElementsExist(elementService.createNodes(10))
+        );
     }
 
     @Test
     public void doAllElementsExist_emptyList_shouldReturn400() {
-        Set<Long> idElements = elementService.createNodes(10);
         try {
-            assertTrue(
-                elementClient.doAnyElementsExist(idElements)
-            );
+            elementClient.doAnyElementsExist(elementService.createNodes(10));
+            fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 400, "empty");
-        } finally {
-            elementService.deleteElements(idElements);
         }
     }
     
     @Test
     public void doesElementExistWithAOrBTest_existsWithAOnly_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        long idPendant = elementService.createPendantTo(idNode);
-        long idNonexistent = mockElementService.idNonexistent();
-        try {
-            assertTrue(
-                elementClient.doesElementExistWithAOrB(idPendant, idNonexistent)
-            );
-        } finally {
-            elementService.deleteElement(idNode);
-            elementService.deleteElement(idPendant);
-        }
+        assertTrue(
+            elementClient.doesElementExistWithAOrB(
+                elementService.createPendantTo(Elements.ID_SEED),
+                mockElementService.idNonexistent()
+            )
+        );
     }
 
     @Test
     public void doesElementExistWithAOrBTest_existsWithBOnly_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        long idPendant = elementService.createPendantFrom(idNode);
-        long idNonexistent = mockElementService.idNonexistent();
-        try {
-            assertTrue(
-                elementClient.doesElementExistWithAOrB(idNonexistent, idPendant)
-            );
-        } finally {
-            elementService.deleteElement(idNode);
-            elementService.deleteElement(idPendant);
-        }
+        assertTrue(
+            elementClient.doesElementExistWithAOrB(
+                mockElementService.idNonexistent(),
+                elementService.createPendantFrom(Elements.ID_SEED)
+            )
+        );
     }
 
     @Test
     public void doesElementExistWithAOrBTest_existsWithAAndB_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        long idPendantFrom = elementService.createPendantFrom(idNode);
-        long idPendantTo = elementService.createPendantTo(idNode);
-        try {
-            assertTrue(
-                elementClient.doesElementExistWithAOrB(idPendantTo, idPendantFrom)
-            );
-        } finally {
-            elementService.deleteElements(Sets.newHashSet(idNode, idPendantFrom, idPendantTo));
-        }
+        assertTrue(
+            elementClient.doesElementExistWithAOrB(
+                elementService.createPendantTo(Elements.ID_SEED),
+                elementService.createPendantFrom(Elements.ID_SEED)
+            )
+        );
     }
 
     @Test
     public void doesElementExistWithAOrBTest_neither_shouldReturnFalse() {
-        long idNonexistentA = mockElementService.idNonexistent();
-        long idNonexistentB = mockElementService.idNonexistent();
         assertFalse(
-            elementClient.doesElementExistWithAOrB(idNonexistentA, idNonexistentB)
+            elementClient.doesElementExistWithAOrB(
+                mockElementService.idNonexistent(),
+                mockElementService.idNonexistent()
+            )
         );
     }
 
     @Test
     public void doesElementExistWithAOrBTest_AAndBSame_exists_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        try {
-            assertTrue(
-                elementClient.doesElementExistWithAOrB(idNode, idNode)
-            );
-        } finally {
-            elementService.deleteElement(idNode);
-        }
+        assertTrue(
+            elementClient.doesElementExistWithAOrB(Elements.ID_SEED, Elements.ID_SEED)
+        );
     }
     
     @Test
@@ -242,67 +193,48 @@ public class ElementTests {
 
     @Test
     public void doesElementExistWithAAndBTest_existsWithAOnly_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        long idPendant = elementService.createPendantTo(idNode);
-        long idNonexistent = mockElementService.idNonexistent();
-        try {
-            assertFalse(
-                elementClient.doesElementExistWithAAndB(idPendant, idNonexistent)
-            );
-        } finally {
-            elementService.deleteElement(idNode);
-            elementService.deleteElement(idPendant);
-        }
+        assertFalse(
+            elementClient.doesElementExistWithAAndB(
+                elementService.createPendantTo(Elements.ID_SEED),
+                mockElementService.idNonexistent()
+            )
+        );
     }
 
     @Test
     public void doesElementExistWithAAndBTest_existsWithBOnly_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        long idPendant = elementService.createPendantFrom(idNode);
-        long idNonexistent = mockElementService.idNonexistent();
-        try {
-            assertFalse(
-                elementClient.doesElementExistWithAAndB(idNonexistent, idPendant)
-            );
-        } finally {
-            elementService.deleteElement(idNode);
-            elementService.deleteElement(idPendant);
-        }
+        assertFalse(
+            elementClient.doesElementExistWithAAndB(
+                mockElementService.idNonexistent(),
+                elementService.createPendantFrom(Elements.ID_SEED)
+            )
+        );
     }
 
     @Test
     public void doesElementExistWithAAndBTest_existsWithAAndB_shouldReturnTrue() {
-        long idNodeA = elementService.createNode();
-        long idNodeB = elementService.createNode();
-        long idEdge = elementService.createElement(idNodeA, idNodeB);
-        try {
-            assertTrue(
-                elementClient.doesElementExistWithAAndB(idNodeA, idNodeB)
-            );
-        } finally {
-            elementService.deleteElements(Sets.newHashSet(idNodeA, idNodeB, idEdge));
-        }
+        long idNode = elementService.createNode();
+        elementService.createElement(Elements.ID_SEED, idNode);
+        assertTrue(
+            elementClient.doesElementExistWithAAndB(Elements.ID_SEED, idNode)
+        );
     }
 
     @Test
     public void doesElementExistWithAAndBTest_neither_shouldReturnFalse() {
-        long idNonexistentA = mockElementService.idNonexistent();
-        long idNonexistentB = mockElementService.idNonexistent();
         assertFalse(
-            elementClient.doesElementExistWithAAndB(idNonexistentA, idNonexistentB)
+            elementClient.doesElementExistWithAAndB(
+                mockElementService.idNonexistent(),
+                mockElementService.idNonexistent()
+            )
         );
     }
 
     @Test
     public void doesElementExistWithAAndBTest_AAndBSame_exists_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        try {
-            assertTrue(
-                elementClient.doesElementExistWithAAndB(idNode, idNode)
-            );
-        } finally {
-            elementService.deleteElement(idNode);
-        }
+        assertTrue(
+            elementClient.doesElementExistWithAAndB(Elements.ID_SEED, Elements.ID_SEED)
+        );
     }
 
     @Test
@@ -315,28 +247,16 @@ public class ElementTests {
 
     @Test
     public void isElementNodeTest_isNode_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        try {
-            assertTrue(elementClient.isElementNode(idNode));
-        } finally {
-            elementService.deleteElement(idNode);
-        }
+        assertTrue(elementClient.isElementNode(elementService.createNode()));
     }
 
     @Test
     public void isElementNodeTest_isNotNode_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        Set<Long> idNonNodes = Sets.newHashSet(
-            elementService.createElement(idNode, idNode),
-            elementService.createElement(0, idNode),
-            elementService.createElement(0, idNode)
-        );
-        try {
-            idNonNodes.forEach(idElement -> assertFalse(elementClient.isElementNode(idElement)));
-        } finally {
-            idNonNodes.add(idNode);
-            elementService.deleteElements(idNonNodes);
-        }
+        Sets.newHashSet(
+            elementService.createElement(Elements.ID_SEED, Elements.ID_SEED),
+            elementService.createElement(0, Elements.ID_SEED),
+            elementService.createElement(0, Elements.ID_SEED)
+        ).forEach(idElement -> assertFalse(elementClient.isElementNode(idElement)));
     }
 
     @Test
@@ -352,9 +272,12 @@ public class ElementTests {
     
     @Test
     public void getNumElementsWithAOrBTest_noneExist_shouldReturnZero() {
-        long idNonexistentA = mockElementService.idNonexistent();
-        long idNonexistentB = mockElementService.idNonexistent();
-        assertEquals(0, elementClient.numElementsWithAOrB(idNonexistentA, idNonexistentB));
+        assertEquals(
+            0,
+            elementClient.numElementsWithAOrB(
+                mockElementService.idNonexistent(),
+                mockElementService.idNonexistent())
+        );
     }
 
     @Test
@@ -364,33 +287,26 @@ public class ElementTests {
 
     @Test
     public void areElementsNodesTest_oneElement_isNode_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        try {
-            assertEquals(Lists.newArrayList(true), elementClient.areElementsNodes(OrderedSets.singleton(idNode)));
-        } finally {
-            elementService.deleteElement(idNode);
-        }
+        assertEquals(
+            Lists.newArrayList(true),
+            elementClient.areElementsNodes(
+                OrderedSets.singleton(Elements.ID_SEED)
+            )
+        );
     }
 
     @Test
     public void areElementsNodesTest_oneElement_isNotNode_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        Set<Long> idNonNodes = Sets.newHashSet(
-            elementService.createElement(idNode, idNode),
-            elementService.createElement(0, idNode),
-            elementService.createElement(0, idNode)
+        Sets.newHashSet(
+            elementService.createElement(Elements.ID_SEED, Elements.ID_SEED),
+            elementService.createElement(0, Elements.ID_SEED),
+            elementService.createElement(0, Elements.ID_SEED)
+        ).forEach(idElement ->
+            assertEquals(
+                Collections.singletonList(false),
+                elementClient.areElementsNodes(OrderedSets.singleton(idElement))
+            )
         );
-        try {
-            idNonNodes.forEach(idElement ->
-                assertEquals(
-                    Collections.singletonList(false),
-                    elementClient.areElementsNodes(OrderedSets.singleton(idElement))
-                )
-            );
-        } finally {
-            idNonNodes.add(idNode);
-            elementService.deleteElements(idNonNodes);
-        }
     }
 
     @Test
@@ -403,485 +319,394 @@ public class ElementTests {
 
     @Test
     public void areElementsNodesTest_multipleElements() {
-        long idNodeA = elementService.createNode();
-        long idNodeB = elementService.createNode();
-        OrderedSet<Long> idElements = OrderedSets.with(
-            idNodeA,
-            elementService.createElement(idNodeA, idNodeA),
-            elementService.createElement(0, idNodeA),
-            elementService.createElement(0, idNodeB),
-            elementService.createElement(idNodeA, idNodeB),
-            idNodeB
+        long idNode = elementService.createNode();
+        assertEquals(
+            Lists.newArrayList(true, false, false, false, false, true),
+            elementClient.areElementsNodes(
+                OrderedSets.with(
+                    Elements.ID_SEED,
+                    elementService.createElement(Elements.ID_SEED, Elements.ID_SEED),
+                    elementService.createElement(0, Elements.ID_SEED),
+                    elementService.createElement(0, idNode),
+                    elementService.createElement(Elements.ID_SEED, idNode),
+                    idNode
+                )
+            )
         );
-        try {
-            assertEquals(
-                Lists.newArrayList(true, false, false, false, false, true),
-                elementClient.areElementsNodes(idElements)
-            );
-        } finally {
-            elementService.deleteElements(Sets.newHashSet(idElements));
-        }
     }
 
     @Test
     public void isElementPendantFromTest_itIs_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        long idPendantFrom = elementService.createPendantFrom(idNode);
-        try {
-            assertTrue(elementClient.isElementPendantFrom(idPendantFrom, idNode));
-        } finally {
-            elementService.deleteElements(Sets.newHashSet(idNode, idPendantFrom));
-        }
+        assertTrue(
+            elementClient.isElementPendantFrom(
+                elementService.createPendantFrom(Elements.ID_SEED),
+                Elements.ID_SEED
+            )
+        );
     }
 
     @Test
     public void isElementPendantFromTest_itIsNot_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        long idLoopOn = elementService.createLoopOn(idNode);
-        long idPendantTo = elementService.createPendantTo(idNode);
-        try {
-            assertFalse(elementClient.isElementPendantFrom(idLoopOn, idNode));
-            assertFalse(elementClient.isElementPendantFrom(idPendantTo, idNode));
-        } finally {
-            elementService.deleteElements(Sets.newHashSet(idNode, idLoopOn, idPendantTo));
-        }
+        assertFalse(
+            elementClient.isElementPendantFrom(
+                elementService.createLoopOn(Elements.ID_SEED),
+                Elements.ID_SEED
+            )
+        );
+        assertFalse(
+            elementClient.isElementPendantFrom(
+                elementService.createPendantTo(
+                    Elements.ID_SEED
+                ),
+                Elements.ID_SEED
+            )
+        );
     }
 
     @Test
     public void isElementPendantFromTest_elementDoesNotExist_shouldReturn404() {
-        long idNode = elementService.createNode();
         long idNonexistent = mockElementService.idNonexistent();
         try {
-            elementClient.isElementPendantFrom(idNonexistent, idNode);
+            elementClient.isElementPendantFrom(idNonexistent, Elements.ID_SEED);
             fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idNonexistent + "");
-        } finally {
-            elementService.deleteElement(idNode);
         }
     }
 
     @Test
     public void isElementPendantFromTest_pendantDoesNotExist_shouldReturn404() {
-        long idNode = elementService.createNode();
         long idNonexistent = mockElementService.idNonexistent();
         try {
-            elementClient.isElementPendantFrom(idNonexistent, idNode);
+            elementClient.isElementPendantFrom(Elements.ID_SEED, idNonexistent);
             fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idNonexistent + "");
-        } finally {
-            elementService.deleteElement(idNode);
         }
     }
 
     @Test
     public void areElementsPendantsFromTest_noElements_shouldReturnEmptyList() {
-        long idNode = elementService.createNode();
-        try {
-            assertEquals(
-                Collections.emptyList(),
-                elementClient.areElementsPendantsFrom(idNode, OrderedSets.empty())
-            );
-        } finally {
-            elementService.deleteElement(idNode);
-        }
+        assertEquals(
+            Collections.emptyList(),
+            elementClient.areElementsPendantsFrom(Elements.ID_SEED, OrderedSets.empty())
+        );
     }
 
     @Test
     public void areElementsPendantsFromTest_oneElement_isPendantFrom_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        long idPendantFrom = elementService.createPendantFrom(idNode);
-        try {
-            assertEquals(
-                Collections.singletonList(true),
-                elementClient.areElementsPendantsFrom(idNode, OrderedSets.singleton(idPendantFrom))
-            );
-        } finally {
-            elementService.deleteElement(idPendantFrom);
-            elementService.deleteElement(idNode);
-        }
+        assertEquals(
+            Collections.singletonList(true),
+            elementClient.areElementsPendantsFrom(
+                Elements.ID_SEED,
+                OrderedSets.singleton(elementService.createPendantFrom(Elements.ID_SEED))
+            )
+        );
     }
 
     @Test
     public void areElementsPendantsFromTest_oneElement_isNotPendantFrom_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        long idPendantTo = elementService.createPendantTo(idNode);
-        try {
-            assertEquals(
-                Collections.singletonList(false),
-                elementClient.areElementsPendantsFrom(idPendantTo, OrderedSets.singleton(idNode))
-            );
-        } finally {
-            elementService.deleteElement(idPendantTo);
-            elementService.deleteElement(idNode);
-        }
+        assertEquals(
+            Collections.singletonList(false),
+            elementClient.areElementsPendantsFrom(
+                elementService.createPendantTo(Elements.ID_SEED),
+                OrderedSets.singleton(Elements.ID_SEED)
+            )
+        );
     }
 
     @Test
     public void areElementsPendantsFromTest_oneElement_elementDoesNotExist_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        long idNonexistent = mockElementService.idNonexistent();
-        try {
-            assertEquals(
-                Collections.singletonList(false),
-                elementClient.areElementsPendantsFrom(idNode, OrderedSets.singleton(idNonexistent))
-            );
-        } finally {
-            elementService.deleteElement(idNode);
-        }
+        assertEquals(
+            Collections.singletonList(false),
+            elementClient.areElementsPendantsFrom(
+                Elements.ID_SEED,
+                OrderedSets.singleton(mockElementService.idNonexistent())
+            )
+        );
     }
 
     @Test
     public void areElementsPendantsFromTest_oneElement_pendantDoesNotExist_shouldReturn404() {
-        long idNode = elementService.createNode();
         long idNonexistent = mockElementService.idNonexistent();
         try {
             assertEquals(
                 Collections.singletonList(false),
-                elementClient.areElementsPendantsFrom(idNonexistent, OrderedSets.singleton(idNode))
+                elementClient.areElementsPendantsFrom(
+                    idNonexistent,
+                    OrderedSets.singleton(Elements.ID_SEED)
+                )
             );
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idNonexistent + "");
-        } finally {
-            elementService.deleteElement(idNode);
         }
     }
 
     @Test
     public void areElementsPendantsFromTest_manyElements() {
-        long idNode = elementService.createNode();
-        OrderedSet<Long> idElements = OrderedSets.with(idNode);
-        idElements.addAll(elementService.createPendantsFrom(idNode, 5));
-        idElements.addAll(elementService.createLoopsOn(idNode, 2));
-        idElements.add(elementService.createElement(idNode, idElements.get(1)));
-        try {
-            assertEquals(
-                Lists.newArrayList(
-                    false,
-                    true, true, true, true, true,
-                    false, false, false
-                ),
-                elementClient.areElementsPendantsFrom(idNode, idElements)
-            );
-        } finally {
-            elementService.deleteElements(Sets.newHashSet(idElements));
-        }
+        OrderedSet<Long> idElements = OrderedSets.with(Elements.ID_SEED);
+        idElements.addAll(elementService.createPendantsFrom(Elements.ID_SEED, 5));
+        idElements.addAll(elementService.createLoopsOn(Elements.ID_SEED, 2));
+        idElements.add(elementService.createElement(Elements.ID_SEED, idElements.get(1)));
+        assertEquals(
+            Lists.newArrayList(
+                false,
+                true, true, true, true, true,
+                false, false, false
+            ),
+            elementClient.areElementsPendantsFrom(Elements.ID_SEED, idElements)
+        );
     }
 
     @Test
     public void isElementPendantToTest_itIs_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        long idPendantTo = elementService.createPendantTo(idNode);
-        try {
-            assertTrue(elementClient.isElementPendantTo(idPendantTo, idNode));
-        } finally {
-            elementService.deleteElements(Sets.newHashSet(idNode, idPendantTo));
-        }
+        assertTrue(
+            elementClient.isElementPendantTo(
+                elementService.createPendantTo(Elements.ID_SEED),
+                Elements.ID_SEED
+            )
+        );
     }
 
     @Test
     public void isElementPendantToTest_itIsNot_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        long idLoopOn = elementService.createLoopOn(idNode);
-        long idPendantFrom = elementService.createPendantFrom(idNode);
-        try {
-            assertFalse(elementClient.isElementPendantTo(idLoopOn, idNode));
-            assertFalse(elementClient.isElementPendantTo(idPendantFrom, idNode));
-        } finally {
-            elementService.deleteElements(Sets.newHashSet(idNode, idLoopOn, idPendantFrom));
-        }
+        assertFalse(
+            elementClient.isElementPendantTo(
+                elementService.createLoopOn(Elements.ID_SEED),
+                Elements.ID_SEED
+            )
+        );
+        assertFalse(
+            elementClient.isElementPendantTo(
+                elementService.createPendantFrom(Elements.ID_SEED),
+                Elements.ID_SEED
+            )
+        );
     }
 
     @Test
     public void isElementPendantToTest_elementDoesNotExist_shouldReturn404() {
-        long idNode = elementService.createNode();
         long idNonexistent = mockElementService.idNonexistent();
         try {
-            elementClient.isElementPendantTo(idNonexistent, idNode);
+            elementClient.isElementPendantTo(idNonexistent, Elements.ID_SEED);
             fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idNonexistent + "");
-        } finally {
-            elementService.deleteElement(idNode);
         }
     }
 
     @Test
-    public void isElementPendantToTest_pendantDoesNotExist_shouldReturn404() {
-        long idNode = elementService.createNode();
+    public void isElementPendantToTest_elementToDoesNotExist_shouldReturn404() {
         long idNonexistent = mockElementService.idNonexistent();
         try {
-            elementClient.isElementPendantTo(idNonexistent, idNode);
+            elementClient.isElementPendantTo(Elements.ID_SEED, idNonexistent);
             fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idNonexistent + "");
-        } finally {
-            elementService.deleteElement(idNode);
         }
     }
 
     @Test
     public void areElementsPendantsToTest_noElements_shouldReturnEmptyOrderedSet() {
-        long idNode = elementService.createNode();
-        try {
-            assertEquals(
-                Collections.emptyList(),
-                elementClient.areElementsPendantsTo(idNode, OrderedSets.empty())
-            );
-        } finally {
-            elementService.deleteElement(idNode);
-        }
+        assertEquals(
+            Collections.emptyList(),
+            elementClient.areElementsPendantsTo(Elements.ID_SEED, OrderedSets.empty())
+        );
     }
 
     @Test
     public void areElementsPendantsToTest_oneElement_isPendantTo_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        long idPendantTo = elementService.createPendantTo(idNode);
-        try {
-            assertEquals(
-                Collections.singletonList(true),
-                elementClient.areElementsPendantsTo(idNode, OrderedSets.singleton(idPendantTo))
-            );
-        } finally {
-            elementService.deleteElement(idPendantTo);
-            elementService.deleteElement(idNode);
-        }
+        assertEquals(
+            Collections.singletonList(true),
+            elementClient.areElementsPendantsTo(
+                Elements.ID_SEED,
+                OrderedSets.singleton(elementService.createPendantTo(Elements.ID_SEED))
+            )
+        );
     }
 
     @Test
     public void areElementsPendantsToTest_oneElement_isNotPendantTo_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        long idPendantTo = elementService.createPendantTo(idNode);
-        try {
-            assertEquals(
-                Collections.singletonList(false),
-                elementClient.areElementsPendantsTo(idPendantTo, OrderedSets.singleton(idNode))
-            );
-        } finally {
-            elementService.deleteElement(idPendantTo);
-            elementService.deleteElement(idNode);
-        }
+        assertEquals(
+            Collections.singletonList(false),
+            elementClient.areElementsPendantsTo(
+                elementService.createPendantTo(Elements.ID_SEED),
+                OrderedSets.singleton(Elements.ID_SEED)
+            )
+        );
     }
 
     @Test
     public void areElementsPendantsToTest_oneElement_elementDoesNotExist_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        long idNonexistent = mockElementService.idNonexistent();
-        try {
-            assertEquals(
-                Collections.singletonList(false),
-                elementClient.areElementsPendantsTo(idNode, OrderedSets.singleton(idNonexistent))
-            );
-        } finally {
-            elementService.deleteElement(idNode);
-        }
+        assertEquals(
+            Collections.singletonList(false),
+            elementClient.areElementsPendantsTo(
+                Elements.ID_SEED,
+                OrderedSets.singleton(mockElementService.idNonexistent())
+            )
+        );
     }
 
     @Test
     public void areElementsPendantsToTest_oneElement_pendantDoesNotExist_shouldReturn404() {
-        long idNode = elementService.createNode();
         long idNonexistent = mockElementService.idNonexistent();
         try {
             assertEquals(
                 Collections.singletonList(false),
-                elementClient.areElementsPendantsTo(idNonexistent, OrderedSets.singleton(idNode))
+                elementClient.areElementsPendantsTo(
+                    idNonexistent,
+                    OrderedSets.singleton(Elements.ID_SEED)
+                )
             );
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idNonexistent + "");
-        } finally {
-            elementService.deleteElement(idNode);
         }
     }
 
     @Test
     public void areElementsPendantsToTest_manyElements() {
-        long idNode = elementService.createNode();
-        OrderedSet<Long> idElements = OrderedSets.with(idNode);
-        idElements.addAll(elementService.createPendantsTo(idNode, 5));
-        idElements.addAll(elementService.createLoopsOn(idNode, 2));
-        idElements.add(elementService.createElement(idNode, idElements.get(1)));
-        try {
-            assertEquals(
-                Lists.newArrayList(
-                    false,
-                    true, true, true, true, true,
-                    false, false, false
-                ),
-                elementClient.areElementsPendantsTo(idNode, idElements)
-            );
-        } finally {
-            elementService.deleteElements(idElements);
-        }
+        OrderedSet<Long> idElements = OrderedSets.with(Elements.ID_SEED);
+        idElements.addAll(elementService.createPendantsTo(Elements.ID_SEED, 5));
+        idElements.addAll(elementService.createLoopsOn(Elements.ID_SEED, 2));
+        idElements.add(elementService.createElement(Elements.ID_SEED, idElements.get(1)));
+        assertEquals(
+            Lists.newArrayList(
+                false,
+                true, true, true, true, true,
+                false, false, false
+            ),
+            elementClient.areElementsPendantsTo(
+                Elements.ID_SEED,
+                idElements
+            )
+        );
     }
 
     @Test
     public void isElementLoopOnTest_itIs_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        long idLoopOn = elementService.createLoopOn(idNode);
-        try {
-            assertTrue(elementClient.isElementLoopOn(idLoopOn, idNode));
-        } finally {
-            elementService.deleteElements(OrderedSets.with(idNode, idLoopOn));
-        }
+        assertTrue(
+            elementClient.isElementLoopOn(
+                elementService.createLoopOn(Elements.ID_SEED),
+                Elements.ID_SEED)
+        );
     }
 
     @Test
     public void isElementLoopOnTest_itIsNot_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        long idPendantTo = elementService.createPendantTo(idNode);
-        long idEdge = elementService.createElement(idNode, idPendantTo);
-        try {
-            assertFalse(elementClient.isElementLoopOn(idEdge, idNode));
-            assertFalse(elementClient.isElementLoopOn(idPendantTo, idNode));
-        } finally {
-            elementService.deleteElements(OrderedSets.with(idNode, idEdge, idPendantTo));
-        }
+        long idPendantTo = elementService.createPendantTo(Elements.ID_SEED);
+        assertFalse(
+            elementClient.isElementLoopOn(
+                elementService.createElement(Elements.ID_SEED, idPendantTo),
+                Elements.ID_SEED
+            )
+        );
+        assertFalse(
+            elementClient.isElementLoopOn(
+                idPendantTo,
+                Elements.ID_SEED
+            )
+        );
     }
 
     @Test
     public void isElementLoopOnTest_elementDoesNotExist_shouldReturn404() {
-        long idNode = elementService.createNode();
         long idNonexistent = mockElementService.idNonexistent();
         try {
-            elementClient.isElementLoopOn(idNonexistent, idNode);
+            elementClient.isElementLoopOn(idNonexistent, Elements.ID_SEED);
             fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idNonexistent + "");
-        } finally {
-            elementService.deleteElement(idNode);
         }
     }
 
     @Test
-    public void isElementLoopOnTest_loopOnDoesNotExist_shouldReturn404() {
-        long idNode = elementService.createNode();
+    public void isElementLoopOnTest_elementOnDoesNotExist_shouldReturn404() {
         long idNonexistent = mockElementService.idNonexistent();
         try {
-            elementClient.isElementLoopOn(idNonexistent, idNode);
+            elementClient.isElementLoopOn(Elements.ID_SEED, idNonexistent);
             fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idNonexistent + "");
-        } finally {
-            elementService.deleteElement(idNode);
         }
     }
 
     @Test
     public void areElementsLoopsOnTest_noElements_shouldReturnEmptyOrderedSet() {
-        long idNode = elementService.createNode();
-        try {
-            assertEquals(
-                Collections.emptyList(),
-                elementClient.areElementsLoopsOn(idNode, OrderedSets.empty())
-            );
-        } finally {
-            elementService.deleteElement(idNode);
-        }
+        assertEquals(
+            Collections.emptyList(),
+            elementClient.areElementsLoopsOn(Elements.ID_SEED, OrderedSets.empty())
+        );
     }
 
     @Test
     public void areElementsLoopsOnTest_oneElement_isLoopOn_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        long idLoopOn = elementService.createLoopOn(idNode);
-        try {
-            assertEquals(
-                Collections.singletonList(true),
-                elementClient.areElementsLoopsOn(idNode, OrderedSets.singleton(idLoopOn))
-            );
-        } finally {
-            elementService.deleteElement(idLoopOn);
-            elementService.deleteElement(idNode);
-        }
+        assertEquals(
+            Collections.singletonList(true),
+            elementClient.areElementsLoopsOn(
+                Elements.ID_SEED,
+                OrderedSets.singleton(elementService.createLoopOn(Elements.ID_SEED))
+            )
+        );
     }
 
     @Test
     public void areElementsLoopsOnTest_oneElement_isNotLoopOn_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        long idLoopOn = elementService.createLoopOn(idNode);
-        try {
-            assertEquals(
-                Collections.singletonList(false),
-                elementClient.areElementsLoopsOn(idLoopOn, OrderedSets.singleton(idNode))
-            );
-        } finally {
-            elementService.deleteElement(idLoopOn);
-            elementService.deleteElement(idNode);
-        }
+        long idLoopOn = elementService.createLoopOn(Elements.ID_SEED);
+        assertEquals(
+            Collections.singletonList(false),
+            elementClient.areElementsLoopsOn(idLoopOn, OrderedSets.singleton(Elements.ID_SEED))
+        );
     }
 
     @Test
     public void areElementsLoopsOnTest_oneElement_elementDoesNotExist_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        long idNonexistent = mockElementService.idNonexistent();
-        try {
-            assertEquals(
-                Collections.singletonList(false),
-                elementClient.areElementsLoopsOn(idNode, OrderedSets.singleton(idNonexistent))
-            );
-        } finally {
-            elementService.deleteElement(idNode);
-        }
+        assertEquals(
+            Collections.singletonList(false),
+            elementClient.areElementsLoopsOn(
+                Elements.ID_SEED,
+                OrderedSets.singleton(mockElementService.idNonexistent())
+            )
+        );
     }
 
     @Test
     public void areElementsLoopsOnTest_oneElement_pendantDoesNotExist_shouldReturn404() {
-        long idNode = elementService.createNode();
         long idNonexistent = mockElementService.idNonexistent();
         try {
             assertEquals(
                 Collections.singletonList(false),
-                elementClient.areElementsLoopsOn(idNonexistent, OrderedSets.singleton(idNode))
+                elementClient.areElementsLoopsOn(idNonexistent, OrderedSets.singleton(Elements.ID_SEED))
             );
         } catch(FeignException e) {
             assertExceptionLike(e, 404, idNonexistent + "");
-        } finally {
-            elementService.deleteElement(idNode);
         }
     }
 
     @Test
     public void areElementsLoopsOnTest_manyElements() {
-        long idNode = elementService.createNode();
-        OrderedSet<Long> idElements = OrderedSets.with(idNode);
-        idElements.addAll(elementService.createLoopsOn(idNode, 5));
-        idElements.addAll(elementService.createPendantsTo(idNode, 2));
-        idElements.add(elementService.createElement(idNode, idElements.get(1)));
-        try {
-            assertEquals(
-                Lists.newArrayList(
-                    false,
-                    true, true, true, true, true,
-                    false, false, false
-                ),
-                elementClient.areElementsLoopsOn(idNode, idElements)
-            );
-        } finally {
-            elementService.deleteElements(idElements);
-        }
+        OrderedSet<Long> idElements = OrderedSets.with(Elements.ID_SEED);
+        idElements.addAll(elementService.createLoopsOn(Elements.ID_SEED, 5));
+        idElements.addAll(elementService.createPendantsTo(Elements.ID_SEED, 2));
+        idElements.add(elementService.createElement(Elements.ID_SEED, idElements.get(1)));
+        assertEquals(
+            Lists.newArrayList(
+                false,
+                true, true, true, true, true,
+                false, false, false
+            ),
+            elementClient.areElementsLoopsOn(Elements.ID_SEED, idElements)
+        );
     }
 
     @Test
     public void isElementEndpointTest_isEndpoint_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        long idPendant = elementService.createPendantTo(idNode);
-        try {
-            assertTrue(elementClient.isElementEndpoint(idNode));
-        } finally {
-            elementService.deleteElements(
-                OrderedSets.with(idNode, idPendant)
-            );
-        }
+        elementService.createPendantTo(Elements.ID_SEED);
+        assertTrue(elementClient.isElementEndpoint(Elements.ID_SEED));
     }
 
     @Test
     public void isElementEndpointTest_isNotEndpoint_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        try {
-            assertFalse(elementClient.isElementEndpoint(idNode));
-        } finally {
-            elementService.deleteElement(idNode);
-        }
+        assertFalse(elementClient.isElementEndpoint(Elements.ID_SEED));
     }
 
     @Test
@@ -896,31 +721,19 @@ public class ElementTests {
 
     @Test
     public void areElementsEndpointsTest_oneElement_isEndpoint_shouldReturnTrue() {
-        long idNode = elementService.createNode();
-        long idPendant = elementService.createPendantTo(idNode);
-        try {
-            assertEquals(
-                Collections.singletonList(true),
-                elementClient.areElementsEndpoints(OrderedSets.with(idNode))
-            );
-        } finally {
-            elementService.deleteElements(
-                OrderedSets.with(idNode, idPendant)
-            );
-        }
+        elementService.createPendantTo(Elements.ID_SEED);
+        assertEquals(
+            Collections.singletonList(true),
+            elementClient.areElementsEndpoints(OrderedSets.with(Elements.ID_SEED))
+        );
     }
 
     @Test
     public void areElementsEndpointsTest_oneElement_isNotEndpoint_shouldReturnFalse() {
-        long idNode = elementService.createNode();
-        try {
-            assertEquals(
-                Collections.singletonList(false),
-                elementClient.areElementsEndpoints(OrderedSets.with(idNode))
-            );
-        } finally {
-            elementService.deleteElement(idNode);
-        }
+        assertEquals(
+            Collections.singletonList(false),
+            elementClient.areElementsEndpoints(OrderedSets.with(Elements.ID_SEED))
+        );
     }
 
     @Test
@@ -933,102 +746,93 @@ public class ElementTests {
     
     @Test
     public void areElementsEndpointsTest_multipleElements() {
-        long idNode = elementService.createNode();
-        long idPendantTo = elementService.createPendantTo(idNode);
-        long idPendantFrom = elementService.createPendantFrom(idNode);
-        long idEdge = elementService.createElement(idPendantTo, idPendantFrom);
-        long idLoopOn = elementService.createLoopOn(idPendantTo);
-        long idNonexistent = mockElementService.idNonexistent();
-        OrderedSet<Long> idElements = OrderedSets.with(
-            idNode, idPendantTo, idPendantFrom, idEdge, idLoopOn, idNonexistent  
+        long idPendantTo = elementService.createPendantTo(Elements.ID_SEED);
+        long idPendantFrom = elementService.createPendantFrom(Elements.ID_SEED);
+        assertEquals(
+            Lists.newArrayList(true, true, true, false, false, false),
+            elementClient.areElementsEndpoints(
+                OrderedSets.with(
+                    Elements.ID_SEED,
+                    idPendantTo,
+                    idPendantFrom,
+                    elementService.createElement(idPendantTo, Elements.ID_SEED),
+                    elementService.createLoopOn(idPendantTo),
+                    mockElementService.idNonexistent()
+                )
+            )
         );
-        try {
-            assertEquals(
-                Lists.newArrayList(
-                    true, true, true, false, false, false
-                ),
-                elementClient.areElementsEndpoints(idElements)
-            );
-        } finally {
-            elementService.deleteElements(idElements);
-        }
+    }
+
+    @Test
+    public void areElementsConnectedTest_yes_bothSame_shouldReturnTrue() {
+        assertTrue(elementClient.areElementsConnected(Elements.ID_SEED, Elements.ID_SEED));
+        long idNode = elementService.createNode();
+        long idEdge = elementService.createElement(Elements.ID_SEED, idNode);
+        assertTrue(elementService.areElementsConnected(idEdge, idEdge));
     }
     
     @Test
-    public void areElementsConnectedTest_yes_shouldReturnTrue() {
-        long idNodeA = elementService.createNode();
-        long idNodeB = elementService.createNode();
-        long idEdge = elementService.createElement(idNodeA, idNodeB);
-        try {
-            assertTrue(elementClient.areElementsConnected(idNodeA, idNodeB));
-        } finally {
-            elementService.deleteElements(OrderedSets.with(idNodeA, idNodeB, idEdge));
-        }
+    public void areElementsConnectedTest_yes_notSame_shouldReturnTrue() {
+        long idNode = elementService.createNode();
+        elementService.createElement(Elements.ID_SEED, idNode);
+        assertTrue(elementClient.areElementsConnected(Elements.ID_SEED, idNode));
+        assertTrue(
+            elementClient.areElementsConnected(
+                Elements.ID_SEED,
+                elementService.createLoopOn(Elements.ID_SEED)
+            )
+        );
     }
     
     @Test
     public void areElementsConnectedTest_no_shouldReturnFalse() {
-        long idNodeA = elementService.createNode();
-        long idNodeB = elementService.createNode();
-        try {
-            assertFalse(elementClient.areElementsConnected(idNodeA, idNodeB));
-        } finally {
-            elementService.deleteElements(OrderedSets.with(idNodeA, idNodeB));
-        }
+        assertFalse(
+            elementClient.areElementsConnected(
+                Elements.ID_SEED,
+                elementService.createNode()
+            )
+        );
     }
     
     @Test
     public void areElementsConnectedTest_aDoesNotExist_shouldReturn404(){
-        long idNodeA = mockElementService.idNonexistent();
-        long idNodeB = elementService.createNode();
+        long idNonexistent = mockElementService.idNonexistent();
         try {
-            elementClient.areElementsConnected(idNodeA, idNodeB);
+            elementClient.areElementsConnected(idNonexistent, Elements.ID_SEED);
             fail();
         } catch(FeignException e) {
-            assertExceptionLike(e, 404, idNodeA + "");
-        } finally {
-            elementService.deleteElement(idNodeB);
+            assertExceptionLike(e, 404, idNonexistent + "");
         }
     }
     
     @Test
     public void areElementsConnectedTest_bDoesNotExist_shouldReturn404() {
-        long idNodeA = elementService.createNode();
-        long idNodeB = mockElementService.idNonexistent();
+        long idNonexistent = mockElementService.idNonexistent();
         try {
-            elementClient.areElementsConnected(idNodeA, idNodeB);
+            elementClient.areElementsConnected(Elements.ID_SEED, idNonexistent);
             fail();
         } catch(FeignException e) {
-            assertExceptionLike(e, 404, idNodeB + "");
-        } finally {
-            elementService.deleteElement(idNodeA);
+            assertExceptionLike(e, 404, idNonexistent + "");
         }
     }
 
     @Test
     public void numElementsWithAOrBTest_oneAExists_shouldReturnOne() {
-        long idNode = elementService.createNode();
-        long idPendant = elementService.createPendantTo(idNode);
-        long idNonexistent = mockElementService.idNonexistent();
-        try {
-            assertEquals(1, elementClient.numElementsWithAOrB(idPendant, idNonexistent));
-        } finally {
-            elementService.deleteElement(idNode);
-            elementService.deleteElement(idPendant);
-        }
+        assertEquals(
+            1,
+            elementClient.numElementsWithAOrB(
+                elementService.createPendantTo(Elements.ID_SEED),
+                mockElementService.idNonexistent()
+            )
+        );
     }
 
     @Test
     public void numElementsWithAOrBTest_nAsExists_shouldReturnN() {
-        long idNode = elementService.createNode();
-        Set<Long> idPendants = elementService.createPendantsFrom(idNode, 5);
-        long idNonexistent = mockElementService.idNonexistent();
-        try {
-            assertEquals(idPendants.size() + 1, elementClient.numElementsWithAOrB(idNode, idNonexistent));
-        } finally {
-            idPendants.add(idNode);
-            elementService.deleteElements(idPendants);
-        }
+        assertEquals(
+            elementService.createPendantsFrom(Elements.ID_SEED, 5).size() + 1,
+            elementClient.numElementsWithAOrB(Elements.ID_SEED, mockElementService.idNonexistent())
+        );
     }
 
     @Test
@@ -1210,7 +1014,7 @@ public class ElementTests {
 
     @Test
     public void numElementsWithAAndBTest_aAndBSame_oneExists_shouldReturnOne() {
-        long idNode = mockElementService.idNonexistent();
+        long idNode = elementService.createNode();
         try {
             assertEquals(1, elementClient.numElementsWithAAndB(idNode, idNode));
         } finally {
@@ -1536,18 +1340,15 @@ public class ElementTests {
 
     @Test
     public void getElementsTest_someExist_shouldReturnThem() {
-        List<Element> elements = Lists.newArrayList(mockElementService.nodes(5));
-        OrderedSet<Long> idElements = elements
-            .stream()
-            .map(Element::getId)
-            .collect(Collectors.toCollection(OrderedSets::with));
-        elements.addAll(0, Collections.nCopies(5, null));
-        OrderedSet<Long> idAll = OrderedSets.with(mockElementService.idNonexistentMultiple(5));
-        idAll.addAll(idElements);
+        OrderedSet<Long> idNodes = elementService.createNodes(5);
+        OrderedSet<Long> idAll = OrderedSets.with(idNodes);
+        idAll.addAll(mockElementService.idNonexistentMultiple(5));
+        List<Element> expected = Lists.newArrayList(elementService.getElements(idNodes));
+        expected.addAll(Collections.nCopies(5, null));
         try {
-            assertEquals(elements, elementClient.getElements(idAll));
+            assertEquals(expected, elementClient.getElements(idAll));
         } finally {
-            elementService.deleteElements(idElements);
+            elementService.deleteElements(idNodes);
         }
     }
 
@@ -2248,7 +2049,7 @@ public class ElementTests {
     @Test
     public void getElementsWithAOrBTest_nBsExists_shouldReturnThem() {
         Element node = elementService.getElement(elementService.createNode());
-        OrderedSet<Element> allElements = OrderedSets.singleton(node);
+        List<Element> allElements = Lists.newArrayList(node);
         allElements.addAll(mockElementService.pendantsTo(node.getId(), 5));
         long idNonexistent = mockElementService.idNonexistent();
         try {
@@ -3048,14 +2849,18 @@ public class ElementTests {
 
     @Test
     public void createElementsTest_manyElements_oneInvalid_shouldReturn400() {
-        elementClient.createElements(
-            Lists.newArrayList(
-                new CreateElementRequest(0, 0),
-                new CreateElementRequest(-1, 0),
-                new CreateElementRequest(-3, -3) //Invalid
-            )
-        );
-        fail();
+        try {
+            elementClient.createElements(
+                Lists.newArrayList(
+                    new CreateElementRequest(0, 0),
+                    new CreateElementRequest(-1, 0),
+                    new CreateElementRequest(-3, -3) //Invalid
+                )
+            );
+            fail();
+        } catch(FeignException e) {
+            assertExceptionLike(e, 400, "-3");
+        }
     }
 
     @Test
