@@ -72,7 +72,7 @@ public class OrderedSet<T> implements List<T>, Set<T> {
             c
                 .stream()
                 .filter(Predicate.not(this::contains))
-                .collect(Collectors.toSet())
+                .collect(Collectors.toCollection(OrderedSet::new))
         );
     }
 

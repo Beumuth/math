@@ -1,11 +1,13 @@
 package com.beumuth.math.core.jgraph.element;
 
+import com.beumuth.math.client.jgraph.CreateElementRequest;
 import com.beumuth.math.client.jgraph.Element;
 import com.beumuth.math.client.settheory.orderedset.OrderedSet;
 import com.beumuth.math.client.settheory.orderedset.OrderedSets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.Set;
 
 @Service
@@ -67,6 +69,16 @@ public class MockElementService {
         return OrderedSets.with(
             elementService.getElements(
                 elementService.createNodes(number)
+            )
+        );
+    }
+
+    public OrderedSet<Element> edges(long idA, long idB, int number) {
+        return OrderedSets.with(
+            elementService.getElements(
+                elementService.createElements(
+                    Collections.nCopies(number, new CreateElementRequest(idA, idB))
+                )
             )
         );
     }

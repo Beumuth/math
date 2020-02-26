@@ -94,7 +94,7 @@ public class ElementService {
         if(maxId != null) {
             nextId = new AtomicLong(maxId + 1);
         } else {
-            seed();
+            reset();
         }
     }
 
@@ -663,8 +663,7 @@ public class ElementService {
                             .map(i -> "ROW(" + i + ")")
                             .collect(Collectors.joining(",")) +
                     ") ids LEFT JOIN JGraphElement j " +
-                        "ON ids.column_0 = j.id " +
-                "ORDER BY id",
+                        "ON ids.column_0 = j.id ",
                 ImmutableMap.of("ids", ids),
                 ELEMENT_LIST_EXTRACTOR
             );
@@ -985,16 +984,10 @@ public class ElementService {
     }
 
     /**
-     * This deletes all elements, resets the auto_increment, and inserts the seed node.
+     * This deletes all elements and resets the auto_increment to 1.
      */
-    public void seed() {
+    public void reset() {
         deleteElements(getAllIds());
-        databaseService
-            .getNamedParameterJdbcTemplate()
-            .update(
-                "INSERT INTO JGraphElement (id, a, b) VALUES (:idSeed, :idSeed, :idSeed)",
-                ImmutableMap.of("idSeed", Elements.ID_SEED)
-        );
-        nextId = new AtomicLong(Elements.ID_SEED + 1);
+        nextId = new AtomicLong(1);
     }
 }

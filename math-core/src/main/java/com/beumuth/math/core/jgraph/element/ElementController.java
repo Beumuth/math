@@ -40,10 +40,12 @@ public class ElementController {
 
     @RequestMapping(method=RequestMethod.GET, value="/elements/exist/any")
     @ResponseBody
-    public boolean doAnyElementsExist(@RequestParam(value="ids") Set<Long> ids) throws ClientErrorException {
+    public boolean doAnyElementsExist(
+        @RequestParam(value="ids", required=false) Set<Long> ids
+    ) throws ClientErrorException {
         Validator
             .returnStatus(BAD_REQUEST)
-            .ifTrue(ids.isEmpty())
+            .ifTrue(ids == null || ids.isEmpty())
             .withErrorMessage("ids cannot be empty")
             .execute();
         return elementService.doAnyElementsExist(ids);
@@ -51,10 +53,12 @@ public class ElementController {
 
     @RequestMapping(method=RequestMethod.GET, value="/elements/exist/all")
     @ResponseBody
-    public boolean doAllElementsExist(@RequestParam(value="ids") Set<Long> ids) throws ClientErrorException {
+    public boolean doAllElementsExist(
+        @RequestParam(value="ids", required=false) Set<Long> ids
+    ) throws ClientErrorException {
         Validator
             .returnStatus(BAD_REQUEST)
-            .ifTrue(ids.isEmpty())
+            .ifTrue(ids == null || ids.isEmpty())
             .withErrorMessage("ids cannot be empty")
             .execute();
         return elementService.doAllElementsExist(ids);
@@ -112,7 +116,9 @@ public class ElementController {
             .ifFalse(elementService.doesElementExist(idFrom))
             .withErrorMessage("Element with given id [" + idFrom + "] does not exist")
             .execute();
-        return ids.isEmpty() ? OrderedSets.empty() : elementService.areElementsPendantsFrom(ids, idFrom);
+        return ids == null || ids.isEmpty() ?
+            OrderedSets.empty() :
+            elementService.areElementsPendantsFrom(ids, idFrom);
     }
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/element/{id}/isPendantTo/{idTo}")
@@ -138,7 +144,9 @@ public class ElementController {
             .ifFalse(elementService.doesElementExist(idTo))
             .withErrorMessage("Element with given id [" + idTo + "] does not exist")
             .execute();
-        return ids == null || ids.isEmpty() ? OrderedSets.empty() : elementService.areElementsPendantsTo(ids, idTo);
+        return ids == null || ids.isEmpty() ?
+            OrderedSets.empty() :
+            elementService.areElementsPendantsTo(ids, idTo);
     }
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/element/{id}/isLoopOn/{idOn}")
@@ -164,7 +172,9 @@ public class ElementController {
             .ifFalse(elementService.doesElementExist(idOn))
             .withErrorMessage("Element with given id [" + idOn + "] does not exist")
             .execute();
-        return ids == null || ids.isEmpty() ? OrderedSets.empty() : elementService.areElementsLoopsOn(ids, idOn);
+        return ids == null || ids.isEmpty() ?
+            OrderedSets.empty() :
+            elementService.areElementsLoopsOn(ids, idOn);
     }
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/element/{id}/isEndpoint")
@@ -176,7 +186,9 @@ public class ElementController {
     @RequestMapping(method=RequestMethod.GET, path="/elements/areEndpoints")
     @ResponseBody
     public List<Boolean> areElementsEndpoints(@RequestParam(value="ids", required=false) OrderedSet<Long> ids) {
-        return ids == null || ids.isEmpty() ? OrderedSets.empty() : elementService.areElementsEndpoints(ids);
+        return ids == null || ids.isEmpty() ?
+            OrderedSets.empty() :
+            elementService.areElementsEndpoints(ids);
     }
 
 
@@ -342,7 +354,9 @@ public class ElementController {
     public List<OrderedSet<Long>> getIdsEndpointsOfForEach(
         @RequestParam(value="ids", required=false) OrderedSet<Long> ids
     ) {
-        return ids.isEmpty() ? Collections.emptyList() : elementService.getIdsEndpointsOfForEach(ids);
+        return ids == null || ids.isEmpty() ?
+            Collections.emptyList() :
+            elementService.getIdsEndpointsOfForEach(ids);
     }
 
     @RequestMapping(method=RequestMethod.GET, value="/elements")
@@ -420,7 +434,9 @@ public class ElementController {
     public List<OrderedSet<Element>> getEndpointsOfForEach(
         @RequestParam(value="ids", required=false) OrderedSet<Long> ids
     ) {
-        return ids.isEmpty() ? Collections.emptyList() : elementService.getEndpointsOfForEach(ids);
+        return ids == null || ids.isEmpty() ?
+            Collections.emptyList() :
+            elementService.getEndpointsOfForEach(ids);
     }
 
     @RequestMapping(method=RequestMethod.POST, value="/elements/element")
