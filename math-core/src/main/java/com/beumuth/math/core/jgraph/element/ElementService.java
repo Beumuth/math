@@ -88,14 +88,10 @@ public class ElementService {
         Long maxId = databaseService
             .getJdbcTemplate()
             .queryForObject(
-                "SELECT MAX(id) FROM JGraphElement",
+                "SELECT MAX(id) FROM Element",
                 Long.class
             );
-        if(maxId != null) {
-            nextId = new AtomicLong(maxId + 1);
-        } else {
-            reset();
-        }
+        nextId = maxId == null ? new AtomicLong(1) : new AtomicLong(maxId + 1);
     }
 
     public boolean doesElementExist(long id) {
@@ -103,7 +99,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                    "SELECT COUNT(1) FROM JGraphElement WHERE id=:id",
+                    "SELECT COUNT(1) FROM Element WHERE id=:id",
                     ImmutableMap.of("id", id),
                     Boolean.class
                 );
@@ -117,7 +113,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                    "SELECT COUNT(1) FROM JGraphElement WHERE id IN (:ids)",
+                    "SELECT COUNT(1) FROM Element WHERE id IN (:ids)",
                     ImmutableMap.of("ids", ids),
                     Boolean.class
                 );
@@ -130,7 +126,7 @@ public class ElementService {
         return databaseService
             .getNamedParameterJdbcTemplate()
             .queryForObject(
-                "SELECT COUNT(1)=:numIds FROM JGraphElement WHERE id IN (:ids)",
+                "SELECT COUNT(1)=:numIds FROM Element WHERE id IN (:ids)",
                 ImmutableMap.of(
                     "ids", ids,
                     "numIds", ids.size()
@@ -151,7 +147,7 @@ public class ElementService {
         return databaseService
             .getNamedParameterJdbcTemplate()
             .queryForObject(
-                "SELECT a=id AND b=id FROM JGraphElement WHERE id=:idElement",
+                "SELECT a=id AND b=id FROM Element WHERE id=:idElement",
                 ImmutableMap.of("idElement", idElement),
                 Boolean.class
             );
@@ -168,7 +164,7 @@ public class ElementService {
                         .stream()
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
-                    ") ids LEFT JOIN JGraphElement j " +
+                    ") ids LEFT JOIN Element j " +
                         "ON ids.column_0 = j.id",
                 ImmutableMap.of("idElements", idElements),
                 Boolean.class
@@ -179,7 +175,7 @@ public class ElementService {
         return databaseService
             .getNamedParameterJdbcTemplate()
             .queryForObject(
-                "SELECT a=:idFrom AND b=id FROM JGraphElement WHERE id=:idElement",
+                "SELECT a=:idFrom AND b=id FROM Element WHERE id=:idElement",
                 ImmutableMap.of(
                     "idElement", idElement,
                     "idFrom", idFrom
@@ -199,7 +195,7 @@ public class ElementService {
                         .stream()
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
-                ") ids LEFT JOIN JGraphElement j " +
+                ") ids LEFT JOIN Element j " +
                     "ON ids.column_0 = j.id",
                 ImmutableMap.of("idElements", idElements, "idFrom", idFrom),
                 Boolean.class
@@ -210,7 +206,7 @@ public class ElementService {
         return databaseService
             .getNamedParameterJdbcTemplate()
             .queryForObject(
-                "SELECT a=id AND b=:idTo FROM JGraphElement WHERE id=:idElement",
+                "SELECT a=id AND b=:idTo FROM Element WHERE id=:idElement",
                 ImmutableMap.of(
                     "idElement", idElement,
                     "idTo", idTo
@@ -230,7 +226,7 @@ public class ElementService {
                         .stream()
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
-                    ") ids LEFT JOIN JGraphElement j " +
+                    ") ids LEFT JOIN Element j " +
                     "ON ids.column_0 = j.id",
                 ImmutableMap.of("idElements", idElements, "idTo", idTo),
                 Boolean.class
@@ -241,7 +237,7 @@ public class ElementService {
         return databaseService
             .getNamedParameterJdbcTemplate()
             .queryForObject(
-                "SELECT id!=:idOn AND a=:idOn AND b=:idOn FROM JGraphElement WHERE id=:idElement",
+                "SELECT id!=:idOn AND a=:idOn AND b=:idOn FROM Element WHERE id=:idElement",
                 ImmutableMap.of(
                     "idElement", idElement,
                     "idOn", idOn
@@ -261,7 +257,7 @@ public class ElementService {
                         .stream()
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
-                    ") ids LEFT JOIN JGraphElement j " +
+                    ") ids LEFT JOIN Element j " +
                         "ON ids.column_0 = j.id",
                 ImmutableMap.of("idElements", idElements, "idOn", idOn),
                 Boolean.class
@@ -278,7 +274,7 @@ public class ElementService {
         return databaseService
             .getNamedParameterJdbcTemplate()
             .queryForObject(
-                "SELECT COUNT(1)  FROM JGraphElement WHERE id != :id AND (a=:id OR b=:id)",
+                "SELECT COUNT(1)  FROM Element WHERE id != :id AND (a=:id OR b=:id)",
                 ImmutableMap.of("id", id),
                 Boolean.class
             );
@@ -302,7 +298,7 @@ public class ElementService {
                             .stream()
                             .map(id -> "ROW (" + id + ")")
                             .collect(Collectors.joining(",")) +
-                    ") AS ids LEFT JOIN JGraphElement j ON " +
+                    ") AS ids LEFT JOIN Element j ON " +
                         "ids.column_0 != j.id AND (" +
                             "ids.column_0 = j.a OR " +
                             "ids.column_0 = j.b" +
@@ -329,7 +325,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                    "SELECT COUNT(1) FROM JGraphElement WHERE a=:a OR b=:b",
+                    "SELECT COUNT(1) FROM Element WHERE a=:a OR b=:b",
                     ImmutableMap.of("a", a, "b", b),
                     Integer.class
                 );
@@ -343,7 +339,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
-                    "SELECT COUNT(1) FROM JGraphElement WHERE a=:a AND b=:b",
+                    "SELECT COUNT(1) FROM Element WHERE a=:a AND b=:b",
                     ImmutableMap.of("a", a, "b", b),
                     Integer.class
                 );
@@ -358,7 +354,7 @@ public class ElementService {
                 .getJdbcTemplate()
                 .queryForObject(
                     "SELECT COUNT(1) " +
-                    "FROM JGraphElement " +
+                    "FROM Element " +
                     "WHERE " +
                         "a = id AND " +
                         "b = id ",
@@ -375,7 +371,7 @@ public class ElementService {
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
                     "SELECT COUNT(1) " +
-                    "FROM JGraphElement " +
+                    "FROM Element " +
                     "WHERE " +
                         "id != :idFrom AND " +
                         "a = :idFrom AND " +
@@ -394,7 +390,7 @@ public class ElementService {
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
                     "SELECT COUNT(1) " +
-                    "FROM JGraphElement " +
+                    "FROM Element " +
                     "WHERE " +
                         "id != :idTo AND " +
                         "a = id AND " +
@@ -413,7 +409,7 @@ public class ElementService {
                 .getNamedParameterJdbcTemplate()
                 .queryForObject(
                     "SELECT COUNT(1) " +
-                    "FROM JGraphElement " +
+                    "FROM Element " +
                     "WHERE " +
                         "id != :idOn AND " +
                         "a = :idOn AND " +
@@ -430,7 +426,7 @@ public class ElementService {
         return databaseService
             .getJdbcTemplate()
             .query(
-                "SELECT id FROM JGraphElement ORDER BY id",
+                "SELECT id FROM Element ORDER BY id",
                 ID_ORDERED_SET_EXTRACTOR
             );
     }
@@ -451,7 +447,7 @@ public class ElementService {
                             .stream()
                             .map(i -> "ROW(" + i + ")")
                             .collect(Collectors.joining(",")) +
-                    ") ids LEFT JOIN JGraphElement j " +
+                    ") ids LEFT JOIN Element j " +
                         "ON ids.column_0 = j.id ",
                 ImmutableMap.of("ids", ids),
                 ID_LIST_EXTRACTOR
@@ -470,7 +466,7 @@ public class ElementService {
                             .stream()
                             .map(i -> "ROW(" + i + ")")
                             .collect(Collectors.joining(",")) +
-                    ") ids LEFT JOIN JGraphElement j " +
+                    ") ids LEFT JOIN Element j " +
                         "ON ids.column_0 = j.id " +
                 "WHERE j.id IS NULL",
                 ImmutableMap.of("ids", ids),
@@ -484,7 +480,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .query(
-                    "SELECT id FROM JGraphElement WHERE a=:a OR b=:b ORDER BY id",
+                    "SELECT id FROM Element WHERE a=:a OR b=:b ORDER BY id",
                     ImmutableMap.of("a", a,"b", b),
                     ID_ORDERED_SET_EXTRACTOR
                 );
@@ -498,7 +494,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .query(
-                    "SELECT id FROM JGraphElement WHERE a=:a AND b=:b ORDER BY id",
+                    "SELECT id FROM Element WHERE a=:a AND b=:b ORDER BY id",
                     ImmutableMap.of("a", a,"b", b),
                     ID_ORDERED_SET_EXTRACTOR
                 );
@@ -512,7 +508,7 @@ public class ElementService {
             .getJdbcTemplate()
             .query(
                 "SELECT id " +
-                "FROM JGraphElement " +
+                "FROM Element " +
                 "WHERE a = id AND b = id",
                 ID_ORDERED_SET_EXTRACTOR
             );
@@ -523,7 +519,7 @@ public class ElementService {
             .getNamedParameterJdbcTemplate()
             .query(
                 "SELECT id " +
-                "FROM JGraphElement " +
+                "FROM Element " +
                 "WHERE " +
                     "id != :idFrom AND " +
                     "a = :idFrom AND " +
@@ -538,7 +534,7 @@ public class ElementService {
             .getNamedParameterJdbcTemplate()
             .query(
                 "SELECT id " +
-                "FROM JGraphElement " +
+                "FROM Element " +
                 "WHERE " +
                     "id != :idTo AND " +
                     "a = id AND " +
@@ -553,7 +549,7 @@ public class ElementService {
             .getNamedParameterJdbcTemplate()
             .query(
                 "SELECT id " +
-                "FROM JGraphElement " +
+                "FROM Element " +
                 "WHERE " +
                     "id != :idOn AND " +
                     "a = :idOn AND " +
@@ -571,7 +567,7 @@ public class ElementService {
         return databaseService
             .getNamedParameterJdbcTemplate()
             .query(
-                "SELECT id FROM JGraphElement WHERE id != :id AND (a=:id OR b=:id) ORDER BY id",
+                "SELECT id FROM Element WHERE id != :id AND (a=:id OR b=:id) ORDER BY id",
                 ImmutableMap.of("id", id),
                 ID_ORDERED_SET_EXTRACTOR
             );
@@ -590,7 +586,7 @@ public class ElementService {
                             .stream()
                             .map(id -> "ROW(" + id + ")")
                             .collect(Collectors.joining(",")) +
-                    ") AS ids LEFT JOIN JGraphElement j ON " +
+                    ") AS ids LEFT JOIN Element j ON " +
                         "j.id != ids.column_0 AND ( " +
                             "j.a = ids.column_0 OR " +
                             "j.b = ids.column_0 " +
@@ -629,7 +625,7 @@ public class ElementService {
         return databaseService
             .getNamedParameterJdbcTemplate()
             .queryForObject(
-                "SELECT id, a, b FROM JGraphElement WHERE id=:id",
+                "SELECT id, a, b FROM Element WHERE id=:id",
                 ImmutableMap.of("id", id),
                 ROW_MAPPER
             );
@@ -639,7 +635,7 @@ public class ElementService {
         return databaseService
             .getJdbcTemplate()
             .query(
-                "SELECT id, a, b FROM JGraphElement ORDER BY id",
+                "SELECT id, a, b FROM Element ORDER BY id",
                 ELEMENT_ORDERED_SET_EXTRACTOR
             );
     }
@@ -662,7 +658,7 @@ public class ElementService {
                             .stream()
                             .map(i -> "ROW(" + i + ")")
                             .collect(Collectors.joining(",")) +
-                    ") ids LEFT JOIN JGraphElement j " +
+                    ") ids LEFT JOIN Element j " +
                         "ON ids.column_0 = j.id ",
                 ImmutableMap.of("ids", ids),
                 ELEMENT_LIST_EXTRACTOR
@@ -674,7 +670,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .query(
-                    "SELECT id, a, b FROM JGraphElement WHERE a=:a OR b=:b ORDER BY id",
+                    "SELECT id, a, b FROM Element WHERE a=:a OR b=:b ORDER BY id",
                     ImmutableMap.of("a", a,"b", b),
                     ELEMENT_ORDERED_SET_EXTRACTOR
                 );
@@ -688,7 +684,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .query(
-                    "SELECT id, a, b FROM JGraphElement WHERE a=:a AND b=:b ORDER BY id",
+                    "SELECT id, a, b FROM Element WHERE a=:a AND b=:b ORDER BY id",
                     ImmutableMap.of("a", a,"b", b),
                     ELEMENT_ORDERED_SET_EXTRACTOR
                 );
@@ -702,7 +698,7 @@ public class ElementService {
                 .getJdbcTemplate()
                 .query(
                     "SELECT id, a, b " +
-                    "FROM JGraphElement " +
+                    "FROM Element " +
                     "WHERE a = id AND b = id",
                     ELEMENT_ORDERED_SET_EXTRACTOR
                 );
@@ -717,7 +713,7 @@ public class ElementService {
                 .getNamedParameterJdbcTemplate()
                 .query(
                     "SELECT id, a, b " +
-                    "FROM JGraphElement " +
+                    "FROM Element " +
                     "WHERE "  +
                         "id != :idFrom AND " +
                         "a = :idFrom AND " +
@@ -736,7 +732,7 @@ public class ElementService {
                 .getNamedParameterJdbcTemplate()
                 .query(
                     "SELECT id, a, b " +
-                    "FROM JGraphElement " +
+                    "FROM Element " +
                     "WHERE " +
                         "id != :idTo AND " +
                         "a = id AND " +
@@ -754,7 +750,7 @@ public class ElementService {
                 .getNamedParameterJdbcTemplate()
                 .query(
                     "SELECT id, a, b " +
-                    "FROM JGraphElement " +
+                    "FROM Element " +
                     "WHERE " +
                         "id != :idOn AND " +
                         "a = :idOn AND " +
@@ -776,7 +772,7 @@ public class ElementService {
             return databaseService
                 .getNamedParameterJdbcTemplate()
                 .query(
-                    "SELECT id, a, b FROM JGraphElement WHERE id != :id AND (a=:id OR b=:id) ORDER BY id",
+                    "SELECT id, a, b FROM Element WHERE id != :id AND (a=:id OR b=:id) ORDER BY id",
                     ImmutableMap.of("id", id),
                     ELEMENT_ORDERED_SET_EXTRACTOR
                 );
@@ -800,7 +796,7 @@ public class ElementService {
                             .stream()
                             .map(id -> "ROW(" + id + ")")
                             .collect(Collectors.joining(",")) +
-                    ") AS ids LEFT JOIN JGraphElement j ON " +
+                    ") AS ids LEFT JOIN Element j ON " +
                         "j.id != ids.column_0 AND ( " +
                         "j.a = ids.column_0 OR " +
                         "j.b = ids.column_0 " +
@@ -836,7 +832,7 @@ public class ElementService {
         databaseService
             .getJdbcTemplate()
             .update(
-                "INSERT INTO JGraphElement (id, a, b) VALUES (" +
+                "INSERT INTO Element (id, a, b) VALUES (" +
                     nextId.get() + ", " +
                     createElementRequestValueToSqlInsert(a, nextId.get()) + ", " +
                     createElementRequestValueToSqlInsert(b, nextId.get()) +
@@ -854,7 +850,7 @@ public class ElementService {
         databaseService
             .getJdbcTemplate()
             .update(
-                "INSERT INTO JGraphElement (id, a, b) VALUES " + requests
+                "INSERT INTO Element (id, a, b) VALUES " + requests
                     .stream()
                     .map(request ->
                         "(" +
@@ -928,7 +924,7 @@ public class ElementService {
         databaseService
             .getNamedParameterJdbcTemplate()
             .update(
-                "UPDATE JGraphElement set a=:a, b=:b WHERE id=:id",
+                "UPDATE Element set a=:a, b=:b WHERE id=:id",
                 ImmutableMap.of(
                     "id", id,
                     "a", request.getA(),
@@ -941,7 +937,7 @@ public class ElementService {
         databaseService
             .getJdbcTemplate()
             .update(
-                "INSERT INTO JGraphElement (id, a, b) VALUES " + IntStream
+                "INSERT INTO Element (id, a, b) VALUES " + IntStream
                     .range(0, ids.size())
                     .mapToObj(i ->
                         "(" + ids.get(i) + ", " +
@@ -962,7 +958,7 @@ public class ElementService {
         databaseService
             .getNamedParameterJdbcTemplate()
             .update(
-                "DELETE FROM JGraphElement WHERE id = :id",
+                "DELETE FROM Element WHERE id = :id",
                 ImmutableMap.of("id", id)
             );
     }
@@ -978,7 +974,7 @@ public class ElementService {
         databaseService
             .getNamedParameterJdbcTemplate()
             .update(
-                "DELETE FROM JGraphElement WHERE id IN (:ids)",
+                "DELETE FROM Element WHERE id IN (:ids)",
                 ImmutableMap.of("ids", ids)
             );
     }

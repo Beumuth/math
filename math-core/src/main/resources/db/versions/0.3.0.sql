@@ -24,6 +24,3 @@ CREATE TABLE IF NOT EXISTS JGraphElement (
 )
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
-
-/*This allows LAST_INSERT_ID() to work on the first query*/
-INSERT INTO jgraphelement (a, b) values (1, 1);

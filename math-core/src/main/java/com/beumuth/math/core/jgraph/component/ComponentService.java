@@ -31,10 +31,10 @@ public class ComponentService {
                 .getNamedParameterJdbcTemplate()
                 .query(
                     "WITH RECURSIVE neighbors (id, a, b) AS (" +
-                            "SELECT id, a, b FROM JGraphElement WHERE id=:id " +
+                            "SELECT id, a, b FROM Element WHERE id=:id " +
                         "UNION " +
                             "SELECT j.id, j.a, j.b " +
-                                "FROM JGraphElement j INNER JOIN neighbors n ON " +
+                                "FROM Element j INNER JOIN neighbors n ON " +
                                     "j.id=n.id OR " +
                                     "j.a=n.id OR " +
                                     "j.b=n.id OR " +
@@ -59,10 +59,10 @@ public class ComponentService {
                 .getNamedParameterJdbcTemplate()
                 .query(
                     "WITH RECURSIVE neighbors (id, a, b) AS (" +
-                            "SELECT id, a, b FROM JGraphElement WHERE id=:id " +
+                            "SELECT id, a, b FROM Element WHERE id=:id " +
                         "UNION " +
                             "SELECT j.id, j.a, j.b " +
-                            "FROM JGraphElement j INNER JOIN neighbors n ON " +
+                            "FROM Element j INNER JOIN neighbors n ON " +
                                 "j.id=n.id OR " +
                                 "j.a=n.id OR " +
                                 "j.b=n.id OR " +
