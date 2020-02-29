@@ -1,5 +1,6 @@
 package com.beumuth.math.core.jgraph.element;
 
+import com.beumuth.math.client.category.Categories;
 import com.beumuth.math.client.jgraph.CreateElementRequest;
 import com.beumuth.math.client.jgraph.Element;
 import com.beumuth.math.client.jgraph.UpdateElementRequest;
@@ -9,7 +10,8 @@ import com.beumuth.math.core.internal.database.DatabaseService;
 import com.beumuth.math.core.internal.database.MathBeanPropertyRowMapper;
 import com.beumuth.math.core.jgraph.component.ComponentService;
 import com.google.common.collect.ImmutableMap;
-import org.assertj.core.util.Lists;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -21,7 +23,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -95,31 +96,23 @@ public class ElementService {
     }
 
     public boolean doesElementExist(long id) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                    "SELECT COUNT(1) FROM Element WHERE id=:id",
-                    ImmutableMap.of("id", id),
-                    Boolean.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            return false;
-        }
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT COUNT(1)>0 FROM Element WHERE id=:id",
+                ImmutableMap.of("id", id),
+                Boolean.class
+            );
     }
 
     public boolean doAnyElementsExist(Set<Long> ids) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                    "SELECT COUNT(1) FROM Element WHERE id IN (:ids)",
-                    ImmutableMap.of("ids", ids),
-                    Boolean.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            return false;
-        }
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT COUNT(1)>0 FROM Element WHERE id IN (:ids)",
+                ImmutableMap.of("ids", ids),
+                Boolean.class
+            );
     }
 
     public boolean doAllElementsExist(Set<Long> ids) {
@@ -135,6 +128,26 @@ public class ElementService {
             );
     }
 
+    public boolean doesElementExistWithA(long a) {
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT COUNT(1) > 0 FROM Element WHERE a=:a",
+                ImmutableMap.of("a", a),
+                Boolean.class
+            );
+    }
+
+    public boolean doesElementExistWithB(long b) {
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT COUNT(1) > 0 FROM Element WHERE b=:b",
+                ImmutableMap.of("b", b),
+                Boolean.class
+            );
+    }
+
     public boolean doesElementWithAOrBExist(long a, long b) {
         return numElementsWithAOrB(a, b) > 0;
     }
@@ -142,46 +155,109 @@ public class ElementService {
     public boolean doesElementExistWithAAndB(long a, long b) {
         return numElementsWithAAndB(a, b) > 0;
     }
-
-    public boolean isElementNode(long idElement) {
+    
+    public boolean doesElementHaveA(long id, long a) {
         return databaseService
             .getNamedParameterJdbcTemplate()
             .queryForObject(
-                "SELECT a=id AND b=id FROM Element WHERE id=:idElement",
-                ImmutableMap.of("idElement", idElement),
+                "SELECT a=:a FROM Element WHERE id=:id",
+                ImmutableMap.of("id", id, "a", a),
                 Boolean.class
             );
     }
-
-    public List<Boolean> areElementsNodes(OrderedSet<Long> idElements) {
+    
+    public boolean doesElementHaveB(long id, long b) {
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT b=:b FROM Element WHERE id=:id",
+                ImmutableMap.of("id", id, "b", b),
+                Boolean.class
+            );
+    }
+    
+    public List<Boolean> doElementsHaveA(OrderedSet<Long> ids, long a) {
         return databaseService
             .getNamedParameterJdbcTemplate()
             .queryForList(
                 "SELECT " +
-                    "j.a IS NOT NULL AND j.a=id AND j.b=id " +
+                    "e.id IS NOT NULL AND e.a=:a " +
+                "FROM " +
+                    "(VALUES " + ids
+                        .stream()
+                        .map(id -> "ROW(" + id + ")")
+                        .collect(Collectors.joining(",")) +
+                    ") ids LEFT JOIN Element e " +
+                        "ON ids.column_0 = e.id",
+                ImmutableMap.of("a", a),
+                Boolean.class
+            );
+    }
+
+    public List<Boolean> doElementsHaveB(OrderedSet<Long> ids, long b) {
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForList(
+                "SELECT " +
+                    "e.id IS NOT NULL AND e.b=:b " +
+                "FROM " +
+                    "(VALUES " + ids
+                        .stream()
+                        .map(id -> "ROW(" + id + ")")
+                        .collect(Collectors.joining(",")) +
+                    ") ids LEFT JOIN Element e " +
+                        "ON ids.column_0 = e.id",
+                ImmutableMap.of("b", b),
+                Boolean.class
+            );
+    }
+
+    public boolean isElementNode(long idElement) {
+        try {
+            return databaseService
+                .getNamedParameterJdbcTemplate()
+                .queryForObject(
+                    "SELECT a=id AND b=id FROM Element WHERE id=:idElement",
+                    ImmutableMap.of("idElement", idElement),
+                    Boolean.class
+                );
+        } catch(EmptyResultDataAccessException e) {
+            return false;
+        }
+    }
+
+    public List<Boolean> areElementsNodes(OrderedSet<Long> idElements) {
+        return databaseService
+            .getJdbcTemplate()
+            .queryForList(
+                "SELECT " +
+                    "e.a IS NOT NULL AND e.a=id AND e.b=id " +
                 "FROM " +
                     "(VALUES " + idElements
                         .stream()
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
-                    ") ids LEFT JOIN Element j " +
-                        "ON ids.column_0 = j.id",
-                ImmutableMap.of("idElements", idElements),
+                    ") ids LEFT JOIN Element e " +
+                        "ON ids.column_0 = e.id",
                 Boolean.class
             );
     }
 
     public boolean isElementPendantFrom(long idElement, long idFrom) {
-        return databaseService
-            .getNamedParameterJdbcTemplate()
-            .queryForObject(
-                "SELECT a=:idFrom AND b=id FROM Element WHERE id=:idElement",
-                ImmutableMap.of(
-                    "idElement", idElement,
-                    "idFrom", idFrom
-                ),
-                Boolean.class
-            );
+        try {
+            return databaseService
+                .getNamedParameterJdbcTemplate()
+                .queryForObject(
+                    "SELECT a=:idFrom AND b=id FROM Element WHERE id=:idElement",
+                    ImmutableMap.of(
+                        "idElement", idElement,
+                        "idFrom", idFrom
+                    ),
+                    Boolean.class
+                );
+        } catch(EmptyResultDataAccessException e) {
+            return false;
+        }
     }
 
     public List<Boolean> areElementsPendantsFrom(OrderedSet<Long> idElements, long idFrom) {
@@ -189,30 +265,34 @@ public class ElementService {
             .getNamedParameterJdbcTemplate()
             .queryForList(
                 "SELECT " +
-                    "j.a IS NOT NULL AND id != :idFrom AND j.a=:idFrom AND j.b=id " +
+                    "e.a IS NOT NULL AND id != :idFrom AND e.a=:idFrom AND e.b=id " +
                 "FROM " +
                     "(VALUES " + idElements
                         .stream()
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
-                ") ids LEFT JOIN Element j " +
-                    "ON ids.column_0 = j.id",
-                ImmutableMap.of("idElements", idElements, "idFrom", idFrom),
+                ") ids LEFT JOIN Element e " +
+                    "ON ids.column_0 = e.id",
+                ImmutableMap.of("idFrom", idFrom),
                 Boolean.class
             );
     }
 
     public boolean isElementPendantTo(long idElement, long idTo) {
-        return databaseService
-            .getNamedParameterJdbcTemplate()
-            .queryForObject(
-                "SELECT a=id AND b=:idTo FROM Element WHERE id=:idElement",
-                ImmutableMap.of(
-                    "idElement", idElement,
-                    "idTo", idTo
-                ),
-                Boolean.class
-            );
+        try {
+            return databaseService
+                .getNamedParameterJdbcTemplate()
+                .queryForObject(
+                    "SELECT a=id AND b=:idTo FROM Element WHERE id=:idElement",
+                    ImmutableMap.of(
+                        "idElement", idElement,
+                        "idTo", idTo
+                    ),
+                    Boolean.class
+                );
+        } catch(EmptyResultDataAccessException e) {
+            return false;
+        }
     }
 
     public List<Boolean> areElementsPendantsTo(OrderedSet<Long> idElements, long idTo) {
@@ -220,30 +300,34 @@ public class ElementService {
             .getNamedParameterJdbcTemplate()
             .queryForList(
                 "SELECT " +
-                    "j.a IS NOT NULL AND id != :idTo AND j.a=id AND j.b=:idTo " +
+                    "e.a IS NOT NULL AND id != :idTo AND e.a=id AND e.b=:idTo " +
                 "FROM " +
                     "(VALUES " + idElements
                         .stream()
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
-                    ") ids LEFT JOIN Element j " +
-                    "ON ids.column_0 = j.id",
-                ImmutableMap.of("idElements", idElements, "idTo", idTo),
+                    ") ids LEFT JOIN Element e " +
+                    "ON ids.column_0 = e.id",
+                ImmutableMap.of("idTo", idTo),
                 Boolean.class
             );
     }
 
     public boolean isElementLoopOn(long idElement, long idOn) {
-        return databaseService
-            .getNamedParameterJdbcTemplate()
-            .queryForObject(
-                "SELECT id!=:idOn AND a=:idOn AND b=:idOn FROM Element WHERE id=:idElement",
-                ImmutableMap.of(
-                    "idElement", idElement,
-                    "idOn", idOn
-                ),
-                Boolean.class
-            );
+        try {
+            return databaseService
+                .getNamedParameterJdbcTemplate()
+                .queryForObject(
+                    "SELECT id!=:idOn AND a=:idOn AND b=:idOn FROM Element WHERE id=:idElement",
+                    ImmutableMap.of(
+                        "idElement", idElement,
+                        "idOn", idOn
+                    ),
+                    Boolean.class
+                );
+        } catch(EmptyResultDataAccessException e) {
+            return false;
+        }
     }
 
     public List<Boolean> areElementsLoopsOn(OrderedSet<Long> idElements, long idOn) {
@@ -251,15 +335,15 @@ public class ElementService {
             .getNamedParameterJdbcTemplate()
             .queryForList(
                 "SELECT " +
-                    "j.a IS NOT NULL AND ids.column_0 != :idOn AND j.a = :idOn AND j.b = :idOn " +
+                    "e.a IS NOT NULL AND ids.column_0 != :idOn AND e.a = :idOn AND e.b = :idOn " +
                 "FROM " +
                     "(VALUES " + idElements
                         .stream()
                         .map(id -> "ROW(" + id + ")")
                         .collect(Collectors.joining(",")) +
-                    ") ids LEFT JOIN Element j " +
-                        "ON ids.column_0 = j.id",
-                ImmutableMap.of("idElements", idElements, "idOn", idOn),
+                    ") ids LEFT JOIN Element e " +
+                        "ON ids.column_0 = e.id",
+                ImmutableMap.of("idOn", idOn),
                 Boolean.class
             );
     }
@@ -271,13 +355,17 @@ public class ElementService {
      * @return
      */
     public boolean isElementEndpoint(long id) {
-        return databaseService
-            .getNamedParameterJdbcTemplate()
-            .queryForObject(
-                "SELECT COUNT(1)  FROM Element WHERE id != :id AND (a=:id OR b=:id)",
-                ImmutableMap.of("id", id),
-                Boolean.class
-            );
+        try {
+            return databaseService
+                .getNamedParameterJdbcTemplate()
+                .queryForObject(
+                    "SELECT COUNT(1)  FROM Element WHERE id != :id AND (a=:id OR b=:id)",
+                    ImmutableMap.of("id", id),
+                    Boolean.class
+                );
+        } catch(EmptyResultDataAccessException e) {
+            return false;
+        }
     }
 
     /**
@@ -288,23 +376,22 @@ public class ElementService {
      */
     public List<Boolean> areElementsEndpoints(OrderedSet<Long> ids) {
         return databaseService
-            .getNamedParameterJdbcTemplate()
+            .getJdbcTemplate()
             .queryForList(
                 "SELECT " +
-                    "j.id IS NOT NULL AS isEndpoint " +
+                    "e.id IS NOT NULL AS isEndpoint " +
                 "FROM " +
                     "(VALUES " +
                         ids
                             .stream()
                             .map(id -> "ROW (" + id + ")")
                             .collect(Collectors.joining(",")) +
-                    ") AS ids LEFT JOIN Element j ON " +
-                        "ids.column_0 != j.id AND (" +
-                            "ids.column_0 = j.a OR " +
-                            "ids.column_0 = j.b" +
+                    ") AS ids LEFT JOIN Element e ON " +
+                        "ids.column_0 != e.id AND (" +
+                            "ids.column_0 = e.a OR " +
+                            "ids.column_0 = e.b" +
                         ") " +
                 "GROUP BY ids.column_0",
-                ImmutableMap.of("ids", ids),
                 Boolean.class
             );
     }
@@ -320,106 +407,102 @@ public class ElementService {
         return componentService.getComponentIds(x).contains(y);
     }
 
+    public int numElementsWithA(long a) {
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT COUNT(1) FROM Element WHERE a=:a",
+                ImmutableMap.of("a", a),
+                Integer.class
+            );
+    }
+
+    public int numElementsWithB(long b) {
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT COUNT(1) FROM Element WHERE b=:b",
+                ImmutableMap.of("b", b),
+                Integer.class
+            );
+    }
+
     public int numElementsWithAOrB(long a, long b) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                    "SELECT COUNT(1) FROM Element WHERE a=:a OR b=:b",
-                    ImmutableMap.of("a", a, "b", b),
-                    Integer.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            return 0;
-        }
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT COUNT(1) FROM Element WHERE a=:a OR b=:b",
+                ImmutableMap.of("a", a, "b", b),
+                Integer.class
+            );
     }
 
     public int numElementsWithAAndB(long a, long b) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                    "SELECT COUNT(1) FROM Element WHERE a=:a AND b=:b",
-                    ImmutableMap.of("a", a, "b", b),
-                    Integer.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-           return 0;
-        }
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT COUNT(1) FROM Element WHERE a=:a AND b=:b",
+                ImmutableMap.of("a", a, "b", b),
+                Integer.class
+            );
     }
 
     public int numNodes() {
-        try {
-            return databaseService
-                .getJdbcTemplate()
-                .queryForObject(
-                    "SELECT COUNT(1) " +
+        return databaseService
+            .getJdbcTemplate()
+            .queryForObject(
+                "SELECT COUNT(1) " +
                     "FROM Element " +
                     "WHERE " +
-                        "a = id AND " +
-                        "b = id ",
-                    Integer.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            return 0;
-        }
+                    "a = id AND " +
+                    "b = id ",
+                Integer.class
+            );
     }
 
     public int numPendantsFrom(long idFrom) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                    "SELECT COUNT(1) " +
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT COUNT(1) " +
                     "FROM Element " +
                     "WHERE " +
-                        "id != :idFrom AND " +
-                        "a = :idFrom AND " +
-                        "b = id ",
-                    ImmutableMap.of("idFrom", idFrom),
-                    Integer.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            return 0;
-        }
+                    "id != :idFrom AND " +
+                    "a = :idFrom AND " +
+                    "b = id ",
+                ImmutableMap.of("idFrom", idFrom),
+                Integer.class
+            );
     }
 
     public int numPendantsTo(long idTo) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                    "SELECT COUNT(1) " +
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT COUNT(1) " +
                     "FROM Element " +
                     "WHERE " +
-                        "id != :idTo AND " +
-                        "a = id AND " +
-                        "b = :idTo ",
-                    ImmutableMap.of("idTo", idTo),
-                    Integer.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            return 0;
-        }
+                    "id != :idTo AND " +
+                    "a = id AND " +
+                    "b = :idTo ",
+                ImmutableMap.of("idTo", idTo),
+                Integer.class
+            );
     }
 
     public int numLoopsOn(long idOn) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                    "SELECT COUNT(1) " +
+        return databaseService
+            .getNamedParameterJdbcTemplate()
+            .queryForObject(
+                "SELECT COUNT(1) " +
                     "FROM Element " +
                     "WHERE " +
-                        "id != :idOn AND " +
-                        "a = :idOn AND " +
-                        "b = :idOn ",
-                    ImmutableMap.of("idOn", idOn),
-                    Integer.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            return 0;
-        }
+                    "id != :idOn AND " +
+                    "a = :idOn AND " +
+                    "b = :idOn ",
+                ImmutableMap.of("idOn", idOn),
+                Integer.class
+            );
     }
 
     public OrderedSet<Long> getAllIds() {
@@ -440,15 +523,15 @@ public class ElementService {
             .getNamedParameterJdbcTemplate()
             .query(
                 "SELECT " +
-                    "j.id " +
+                    "e.id " +
                 "FROM " +
                     "(VALUES " +
                         ids
                             .stream()
                             .map(i -> "ROW(" + i + ")")
                             .collect(Collectors.joining(",")) +
-                    ") ids LEFT JOIN Element j " +
-                        "ON ids.column_0 = j.id ",
+                    ") ids LEFT JOIN Element e " +
+                        "ON ids.column_0 = e.id ",
                 ImmutableMap.of("ids", ids),
                 ID_LIST_EXTRACTOR
             );
@@ -466,14 +549,41 @@ public class ElementService {
                             .stream()
                             .map(i -> "ROW(" + i + ")")
                             .collect(Collectors.joining(",")) +
-                    ") ids LEFT JOIN Element j " +
-                        "ON ids.column_0 = j.id " +
-                "WHERE j.id IS NULL",
+                    ") ids LEFT JOIN Element e " +
+                        "ON ids.column_0 = e.id " +
+                "WHERE e.id IS NULL",
                 ImmutableMap.of("ids", ids),
                 ID_ORDERED_SET_EXTRACTOR
             );
     }
 
+    public OrderedSet<Long> getIdsWithA(long a) {
+        try {
+            return databaseService
+                .getNamedParameterJdbcTemplate()
+                .query(
+                    "SELECT id FROM Element WHERE a=:a ORDER BY id",
+                    ImmutableMap.of("a", a),
+                    ID_ORDERED_SET_EXTRACTOR
+                );
+        } catch(EmptyResultDataAccessException e) {
+            return OrderedSets.empty();
+        }
+    }
+
+    public OrderedSet<Long> getIdsWithB(long b) {
+        try {
+            return databaseService
+                .getNamedParameterJdbcTemplate()
+                .query(
+                    "SELECT id FROM Element WHERE b=:b ORDER BY id",
+                    ImmutableMap.of("b", b),
+                    ID_ORDERED_SET_EXTRACTOR
+                );
+        } catch(EmptyResultDataAccessException e) {
+            return OrderedSets.empty();
+        }
+    }
 
     public OrderedSet<Long> getIdsWithAOrB(long a, long b) {
         try {
@@ -579,17 +689,17 @@ public class ElementService {
             .query(
                 "SELECT " +
                     "ids.column_0 AS idElement, " +
-                    "j.id AS idEndpoint " +
+                    "e.id AS idEndpoint " +
                 "FROM (" +
                     "VALUES " +
                         ids
                             .stream()
                             .map(id -> "ROW(" + id + ")")
                             .collect(Collectors.joining(",")) +
-                    ") AS ids LEFT JOIN Element j ON " +
-                        "j.id != ids.column_0 AND ( " +
-                            "j.a = ids.column_0 OR " +
-                            "j.b = ids.column_0 " +
+                    ") AS ids LEFT JOIN Element e ON " +
+                        "e.id != ids.column_0 AND ( " +
+                            "e.a = ids.column_0 OR " +
+                            "e.b = ids.column_0 " +
                         ") " +
                     "ORDER BY " +
                         "idElement, " +
@@ -650,19 +760,47 @@ public class ElementService {
             .query(
                 "SELECT " +
                     "ids.column_0 AS id, " +
-                    "j.a AS a, " +
-                    "j.b AS b " +
+                    "e.a AS a, " +
+                    "e.b AS b " +
                 "FROM " +
                     "(VALUES " +
                         ids
                             .stream()
                             .map(i -> "ROW(" + i + ")")
                             .collect(Collectors.joining(",")) +
-                    ") ids LEFT JOIN Element j " +
-                        "ON ids.column_0 = j.id ",
+                    ") ids LEFT JOIN Element e " +
+                        "ON ids.column_0 = e.id ",
                 ImmutableMap.of("ids", ids),
                 ELEMENT_LIST_EXTRACTOR
             );
+    }
+
+    public OrderedSet<Element> getElementsWithA(long a) {
+        try {
+            return databaseService
+                .getNamedParameterJdbcTemplate()
+                .query(
+                    "SELECT id, a, b FROM Element WHERE a=:a ORDER BY id",
+                    ImmutableMap.of("a", a),
+                    ELEMENT_ORDERED_SET_EXTRACTOR
+                );
+        } catch(EmptyResultDataAccessException e) {
+            return OrderedSets.empty();
+        }
+    }
+
+    public OrderedSet<Element> getElementsWithB(long b) {
+        try {
+            return databaseService
+                .getNamedParameterJdbcTemplate()
+                .query(
+                    "SELECT id, a, b FROM Element WHERE b=:b ORDER BY id",
+                    ImmutableMap.of("b", b),
+                    ELEMENT_ORDERED_SET_EXTRACTOR
+                );
+        } catch(EmptyResultDataAccessException e) {
+            return OrderedSets.empty();
+        }
     }
 
     public OrderedSet<Element> getElementsWithAOrB(long a, long b) {
@@ -787,19 +925,19 @@ public class ElementService {
             .query(
                 "SELECT " +
                     "ids.column_0 AS idElement, " +
-                    "j.id AS idEndpoint, " +
-                    "j.a AS a, " +
-                    "j.b AS b " +
+                    "e.id AS idEndpoint, " +
+                    "e.a AS a, " +
+                    "e.b AS b " +
                 "FROM (" +
                     "VALUES " +
                         ids
                             .stream()
                             .map(id -> "ROW(" + id + ")")
                             .collect(Collectors.joining(",")) +
-                    ") AS ids LEFT JOIN Element j ON " +
-                        "j.id != ids.column_0 AND ( " +
-                        "j.a = ids.column_0 OR " +
-                        "j.b = ids.column_0 " +
+                    ") AS ids LEFT JOIN Element e ON " +
+                        "e.id != ids.column_0 AND ( " +
+                        "e.a = ids.column_0 OR " +
+                        "e.b = ids.column_0 " +
                     ")",
                 new ResultSetExtractor<List<OrderedSet<Element>>>() {
                     @Override
@@ -842,25 +980,25 @@ public class ElementService {
     }
 
     public OrderedSet<Long> createElements(List<CreateElementRequest> requests) {
-        AtomicInteger counter = new AtomicInteger();
+        long startId = nextId.getAndAdd(requests.size());
         OrderedSet<Long> ids = LongStream
-            .range(nextId.get(), nextId.get() + requests.size())
+            .range(startId, startId + requests.size())
             .boxed()
             .collect(Collectors.toCollection(OrderedSet::new));
         databaseService
             .getJdbcTemplate()
             .update(
-                "INSERT INTO Element (id, a, b) VALUES " + requests
-                    .stream()
-                    .map(request ->
+                "INSERT INTO Element (id, a, b) VALUES " +
+                IntStream
+                    .range(0, requests.size())
+                    .mapToObj(i->
                         "(" +
-                            ids.get(counter.getAndIncrement()) + ", " +
-                            createElementRequestValueToSqlInsert(request.getA(), nextId.get()) + ", " +
-                            createElementRequestValueToSqlInsert(request.getB(), nextId.get()) +
+                            ids.get(i) + ", " +
+                            createElementRequestValueToSqlInsert(requests.get(i).getA(), startId) + ", " +
+                            createElementRequestValueToSqlInsert(requests.get(i).getB(), startId) +
                         ")"
                     ).collect(Collectors.joining(","))
             );
-        nextId.set(nextId.get() + requests.size());
         return ids;
     }
 
@@ -983,7 +1121,12 @@ public class ElementService {
      * This deletes all elements and resets the auto_increment to 1.
      */
     public void reset() {
-        deleteElements(getAllIds());
+        deleteElements(
+            Sets.difference(
+                Categories.ALL_STANDARD,
+                getAllIds()
+            )
+        );
         nextId = new AtomicLong(1);
     }
 }

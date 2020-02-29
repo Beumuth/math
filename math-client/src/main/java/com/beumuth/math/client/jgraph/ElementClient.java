@@ -18,11 +18,29 @@ public interface ElementClient extends MathClient {
     @RequestLine("GET api/jgraph/elements/exist/all?ids={ids}")
     boolean doAllElementsExist(@Param("ids") Set<Long> ids);
 
-    @RequestLine("GET api/jgraph/elements/element/with/{a}/or/{b}/exists")
+    @RequestLine("GET api/jgraph/elements/element/with/a/{a}/exists")
+    boolean doesElementExistWithA(@Param("a") long a);
+
+    @RequestLine("GET api/jgraph/elements/element/with/b/{b}/exists")
+    boolean doesElementExistWithB(@Param("b") long b);
+
+    @RequestLine("GET api/jgraph/elements/element/with/a/{a}/or/b/{b}/exists")
     boolean doesElementExistWithAOrB(@Param("a") long a, @Param("b") long b);
 
-    @RequestLine("GET api/jgraph/elements/element/with/{a}/and/{b}/exists")
+    @RequestLine("GET api/jgraph/elements/element/with/a/{a}/and/b/{b}/exists")
     boolean doesElementExistWithAAndB(@Param("a") long a, @Param("b") long b);
+
+    @RequestLine("GET api/jgraph/elements/element/{id}/has/a/{a}")
+    boolean doesElementHaveA(@Param("id") long id, @Param("a") long a);
+
+    @RequestLine("GET api/jgraph/elements/have/a/{a}?ids={ids}")
+    List<Boolean> doElementsHaveA(@Param("a") long a, @Param("ids") OrderedSet<Long> ids);
+
+    @RequestLine("GET api/jgraph/elements/element/{id}/has/b/{b}")
+    boolean doesElementHaveB(@Param("id") long id, @Param("b") long b);
+
+    @RequestLine("GET api/jgraph/elements/have/b/{b}?ids={ids}")
+    List<Boolean> doElementsHaveB(@Param("b") long b, @Param("ids") OrderedSet<Long> ids);
 
     @RequestLine("GET api/jgraph/elements/element/{id}/isNode")
     boolean isElementNode(@Param("id") long id);
@@ -57,10 +75,16 @@ public interface ElementClient extends MathClient {
     @RequestLine("GET api/jgraph/elements/connected/{a}/{b}")
     boolean areElementsConnected(@Param("a") long a, @Param("b") long b);
 
-    @RequestLine("GET api/jgraph/elements/with/{a}/or/{b}/count")
+    @RequestLine("GET api/jgraph/elements/with/a/{a}/count")
+    int numElementsWithA(@Param("a") long a);
+
+    @RequestLine("GET api/jgraph/elements/with/b/{b}/count")
+    int numElementsWithB(@Param("b") long b);
+
+    @RequestLine("GET api/jgraph/elements/with/a/{a}/or/b/{b}/count")
     int numElementsWithAOrB(@Param("a") long a, @Param("b") long b);
 
-    @RequestLine("GET api/jgraph/elements/with/{a}/and/{b}/count")
+    @RequestLine("GET api/jgraph/elements/with/a/{a}/and/b/{b}/count")
     int numElementsWithAAndB(@Param("a") long a, @Param("b") long b);
 
     @RequestLine("GET api/jgraph/elements/nodes/count")
@@ -84,10 +108,16 @@ public interface ElementClient extends MathClient {
     @RequestLine("GET api/jgraph/elements/ids?ids={ids}")
     List<Long> getIds(@Param("ids") OrderedSet<Long> ids);
 
-    @RequestLine("GET api/jgraph/elements/ids/with/{a}/or/{b}")
+    @RequestLine("GET api/jgraph/elements/ids/with/a/{a}")
+    OrderedSet<Long> getIdsWithA(@Param("a") long a);
+
+    @RequestLine("GET api/jgraph/elements/ids/with/b/{b}")
+    OrderedSet<Long> getIdsWithB(@Param("b") long b);
+
+    @RequestLine("GET api/jgraph/elements/ids/with/a/{a}/or/b/{b}")
     OrderedSet<Long> getIdsWithAOrB(@Param("a") long a, @Param("b") long b);
 
-    @RequestLine("GET api/jgraph/elements/ids/with/{a}/and/{b}")
+    @RequestLine("GET api/jgraph/elements/ids/with/a/{a}/and/b/{b}")
     OrderedSet<Long> getIdsWithAAndB(@Param("a") long a, @Param("b") long b);
 
     @RequestLine("GET api/jgraph/elements/nodes/ids")
@@ -114,10 +144,16 @@ public interface ElementClient extends MathClient {
     @RequestLine("GET api/jgraph/elements?ids={ids}")
     List<Element> getElements(@Param("ids") OrderedSet<Long> ids);
 
-    @RequestLine("GET api/jgraph/elements/with/{a}/or/{b}")
+    @RequestLine("GET api/jgraph/elements/with/a/{a}")
+    OrderedSet<Element> getElementsWithA(@Param("a") long a);
+
+    @RequestLine("GET api/jgraph/elements/with/b/{b}")
+    OrderedSet<Element> getElementsWithB(@Param("b") long b);
+
+    @RequestLine("GET api/jgraph/elements/with/a/{a}/or/b/{b}")
     OrderedSet<Element> getElementsWithAOrB(@Param("a") long a, @Param("b") long b);
 
-    @RequestLine("GET api/jgraph/elements/with/{a}/and/{b}")
+    @RequestLine("GET api/jgraph/elements/with/a/{a}/and/b/{b}")
     OrderedSet<Element> getElementsWithAAndB(@Param("a") long a, @Param("b") long b);
 
     @RequestLine("GET api/jgraph/elements/nodes")

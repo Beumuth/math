@@ -96,6 +96,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.bitbucket.radistao.test</groupId>
+            <artifactId>before-after-spring-test-runner</artifactId>
+            <version>0.1.0</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -1,5 +1,6 @@
 package com.beumuth.math.core.jgraph.element;
 
+import com.beumuth.math.client.category.Categories;
 import com.beumuth.math.client.jgraph.CreateElementRequest;
 import com.beumuth.math.client.jgraph.Element;
 import com.beumuth.math.client.jgraph.ElementClient;
@@ -11,6 +12,8 @@ import com.beumuth.math.core.settheory.tuple.Tuples;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import feign.FeignException;
+import org.bitbucket.radistao.test.annotation.BeforeAllMethods;
+import org.bitbucket.radistao.test.runner.BeforeAfterSpringTestRunner;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,9 +21,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.annotation.PostConstruct;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -32,7 +33,7 @@ import static com.beumuth.math.core.external.feign.FeignAssertions.assertExcepti
 import static com.beumuth.math.core.jgraph.element.ElementAssertions.assertElementsSame;
 import static org.junit.Assert.*;
 
-@RunWith(SpringRunner.class)
+@RunWith(BeforeAfterSpringTestRunner.class)
 @SpringBootTest
 public class ElementTests {
     @Autowired
@@ -43,13 +44,13 @@ public class ElementTests {
     @Autowired
     private ClientService clientService;
 
-    private static ElementClient elementClient;
+    private ElementClient elementClient;
 
     private long idNonexistent;
     private OrderedSet<Long> idNonexistentMultiple;
     
-    @PostConstruct
-    public void postConstruct() {
+    @BeforeAllMethods
+    public void setupAllTests() {
         elementClient = clientService.getClient(ElementClient.class);
     }
 
@@ -132,6 +133,28 @@ public class ElementTests {
         } catch(FeignException e) {
             assertExceptionLike(e, 400, "empty");
         }
+    }
+    
+    @Test
+    public void doesElementExistWithATest_doesNot_shouldReturnFalse() {
+        assertFalse(elementClient.doesElementExistWithA(idNonexistent));
+    }
+    
+    @Test
+    public void doesElementExistWithATest_does_shouldReturnTrue() {
+        long idNode = elementService.createNode();
+        assertTrue(elementClient.doesElementExistWithA(idNode));
+    }
+
+    @Test
+    public void doesElementExistWithBTest_doesNot_shouldReturnFalse() {
+        assertFalse(elementClient.doesElementExistWithB(idNonexistent));
+    }
+
+    @Test
+    public void doesElementExistWithBTest_does_shouldReturnTrue() {
+        long idNode = elementService.createNode();
+        assertTrue(elementClient.doesElementExistWithB(idNode));
     }
     
     @Test
@@ -241,6 +264,226 @@ public class ElementTests {
     public void doesElementExistWithAAndBTest_AAndBSame_doesNotExist_shouldReturnFalse() {
         assertFalse(
             elementClient.doesElementExistWithAAndB(idNonexistent, idNonexistent)
+        );
+    }
+    
+    @Test
+    public void doesElementHaveATest_does_shouldReturnTrue() {
+        long idNode = elementService.createNode();
+        assertTrue(elementClient.doesElementHaveA(idNode, idNode));
+        assertTrue(
+            elementClient.doesElementHaveA(
+                elementService.createPendantFrom(idNode),
+                idNode
+            )
+        );
+    }
+    
+    @Test
+    public void doesElementHaveATest_doesNot_shouldReturnFalse() {
+        long idNode = elementService.createNode();
+        assertFalse(
+            elementClient.doesElementHaveA(
+                elementService.createPendantTo(idNode),
+                idNode
+            )
+        );
+    }
+    
+    @Test
+    public void doesElementHaveATest_doesNotExist_shouldReturn404() {
+        try {
+            elementClient.doesElementHaveA(idNonexistent, elementService.createNode());
+            fail();
+        } catch(FeignException e) {
+            assertExceptionLike(e, 404, idNonexistent + "");
+        }
+    }
+    
+    @Test
+    public void doElementsHaveATest_emptySet_shouldReturnEmptyList() {
+        assertEquals(
+            Collections.emptyList(),
+            elementClient.doElementsHaveA(elementService.createNode(), OrderedSets.empty())
+        );
+    }
+    
+    @Test
+    public void doElementsHaveATest_single_doesNot_shouldReturnFalse() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            Collections.singletonList(false),
+            elementClient.doElementsHaveA(
+                idNode,
+                OrderedSets.singleton(elementService.createPendantTo(idNode))
+            )
+        );
+    }
+
+    @Test
+    public void doElementsHaveATest_single_does_shouldReturnTrue() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            Collections.singletonList(true),
+            elementClient.doElementsHaveA(
+                idNode,
+                OrderedSets.singleton(elementService.createPendantFrom(idNode))
+            )
+        );
+    }
+
+    @Test
+    public void doElementsHaveATest_single_doesNotExist_shouldReturnFalse() {
+        assertEquals(
+            Collections.singletonList(false),
+            elementClient.doElementsHaveA(
+                elementService.createNode(),
+                OrderedSets.singleton(idNonexistent)
+            )
+        );
+    }
+
+    @Test
+    public void doElementsHaveATest_multiple() {
+        long idNodeA = elementService.createNode();
+        long idNodeB = elementService.createNode();
+        assertEquals(
+            Lists.newArrayList(
+                true, false,
+                true, true, true,
+                false, false, false,
+                true, true,
+                true, false,
+                false, false,
+                false, false
+            ),
+            elementClient.doElementsHaveA(
+                idNodeA,
+                OrderedSets.with(
+                    OrderedSets.with(idNodeA, idNodeB),
+                    elementService.createPendantsFrom(idNodeA, 3),
+                    elementService.createPendantsTo(idNodeA, 3),
+                    elementService.createLoopsOn(idNodeA, 2),
+                    OrderedSets.with(
+                        elementService.createElement(idNodeA, idNodeB),
+                        elementService.createElement(idNodeB, idNodeA),
+                        elementService.createLoopOn(idNodeB),
+                        elementService.createPendantFrom(idNodeB),
+                        idNonexistentMultiple.get(0),
+                        idNonexistentMultiple.get(1)
+                    )
+                )
+            )
+        );
+    }
+
+    @Test
+    public void doesElementHaveBTest_does_shouldReturnTrue() {
+        long idNode = elementService.createNode();
+        assertTrue(elementClient.doesElementHaveB(idNode, idNode));
+        assertTrue(
+            elementClient.doesElementHaveB(
+                elementService.createPendantTo(idNode),
+                idNode
+            )
+        );
+    }
+
+    @Test
+    public void doesElementHaveBTest_doesNot_shouldReturnFalse() {
+        long idNode = elementService.createNode();
+        assertFalse(
+            elementClient.doesElementHaveB(
+                elementService.createPendantFrom(idNode),
+                idNode
+            )
+        );
+    }
+
+    @Test
+    public void doesElementHaveBTest_doesNotExist_shouldReturn404() {
+        try {
+            elementClient.doesElementHaveB(idNonexistent, elementService.createNode());
+            fail();
+        } catch(FeignException e) {
+            assertExceptionLike(e, 404, idNonexistent + "");
+        }
+    }
+
+    @Test
+    public void doElementsHaveBTest_emptySet_shouldReturnEmptyList() {
+        assertEquals(
+            Collections.emptyList(),
+            elementClient.doElementsHaveA(elementService.createNode(), OrderedSets.empty())
+        );
+    }
+
+    @Test
+    public void doElementsHaveBTest_single_doesNot_shouldReturnFalse() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            Collections.singletonList(false),
+            elementClient.doElementsHaveB(
+                idNode,
+                OrderedSets.singleton(elementService.createPendantFrom(idNode))
+            )
+        );
+    }
+
+    @Test
+    public void doElementsHaveBTest_single_does_shouldReturnTrue() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            Collections.singletonList(true),
+            elementClient.doElementsHaveB(
+                idNode,
+                OrderedSets.singleton(elementService.createPendantTo(idNode))
+            )
+        );
+    }
+
+    @Test
+    public void doElementsHaveBTest_single_doesNotExist_shouldReturnFalse() {
+        assertEquals(
+            Collections.singletonList(false),
+            elementClient.doElementsHaveB(
+                elementService.createNode(),
+                OrderedSets.singleton(idNonexistent)
+            )
+        );
+    }
+
+    @Test
+    public void doElementsHaveBTest_multiple() {
+        long idNodeA = elementService.createNode();
+        long idNodeB = elementService.createNode();
+        assertEquals(
+            Lists.newArrayList(
+                true, false,
+                true, true, true,
+                false, false, false,
+                true, true,
+                false, true,
+                false, false,
+                false, false
+            ),
+            elementClient.doElementsHaveB(
+                idNodeA,
+                OrderedSets.with(
+                    OrderedSets.with(idNodeA, idNodeB),
+                    elementService.createPendantsTo(idNodeA, 3),
+                    elementService.createPendantsFrom(idNodeA, 3),
+                    elementService.createLoopsOn(idNodeA, 2),
+                    OrderedSets.with(
+                        elementService.createElement(idNodeA, idNodeB),
+                        elementService.createElement(idNodeB, idNodeA),
+                        elementService.createLoopOn(idNodeB),
+                        elementService.createPendantFrom(idNodeB),
+                        idNonexistentMultiple.get(0),
+                        idNonexistentMultiple.get(1)
+                    )
+                )
+            )
         );
     }
 
@@ -837,6 +1080,62 @@ public class ElementTests {
             assertExceptionLike(e, 404, idNonexistent + "");
         }
     }
+    
+    @Test
+    public void numElementsWithATest_noneExist_shouldReturnZero() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            0,
+            elementClient.numElementsWithA(elementService.createPendantFrom(idNode))
+        );
+    }
+    
+    @Test
+    public void numElementsWithATest_oneExists_shouldReturnOne() {
+        assertEquals(1, elementClient.numElementsWithA(elementService.createNode()));
+    }
+    
+    @Test
+    public void numElementsWithATest_nExist_shouldReturnN() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            1 + elementService.createPendantsFrom(idNode, 5).size(),
+            elementClient.numElementsWithA(idNode)
+        );
+    }
+    
+    @Test
+    public void numElementsWithATest_aDoesNotExist_shouldReturn0() {
+        assertEquals(0, elementClient.numElementsWithA(idNonexistent));
+    }
+
+    @Test
+    public void numElementsWithBTest_noneExist_shouldReturnZero() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            0,
+            elementClient.numElementsWithB(elementService.createPendantTo(idNode))
+        );
+    }
+
+    @Test
+    public void numElementsWitBTest_oneExists_shouldReturnOne() {
+        assertEquals(1, elementClient.numElementsWithB(elementService.createNode()));
+    }
+
+    @Test
+    public void numElementsWithBTest_nExist_shouldReturnN() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            1 + elementService.createPendantsTo(idNode, 5).size(),
+            elementClient.numElementsWithB(idNode)
+        );
+    }
+
+    @Test
+    public void numElementsWithBTest_aDoesNotExist_shouldReturn0() {
+        assertEquals(0, elementClient.numElementsWithB(idNonexistent));
+    }
 
     @Test
     public void numElementsWithAOrBTest_oneAExists_shouldReturnOne() {
@@ -1291,6 +1590,88 @@ public class ElementTests {
             OrderedSets.empty(),
             elementClient.getElements(OrderedSets.empty())
         );
+    }
+    
+    @Test
+    public void getIdsWithATest_noneExist_shouldReturnEmptyList() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            OrderedSets.empty(),
+            elementClient.getIdsWithA(elementService.createPendantFrom(idNode))
+        );
+    }
+    
+    @Test
+    public void getIdsWithATest_oneExists_shouldBeReturned() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            OrderedSets.singleton(idNode),
+            elementClient.getIdsWithA(idNode)
+        );
+    }
+    
+    @Test
+    public void getIdsWithATest_manyExist_shouldBeReturned() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            OrderedSets.with(
+                OrderedSets.singleton(idNode),
+                elementService.createPendantsFrom(idNode, 5),
+                elementService.createLoopsOn(idNode, 5)
+            ),
+            elementClient.getIdsWithA(idNode)
+        );
+    }
+    
+    @Test
+    public void getIdsWithATest_aDoesNotExist_shouldReturn404() {
+        try {
+            elementClient.getIdsWithA(idNonexistent);
+            fail();
+        } catch(FeignException e) {
+            assertExceptionLike(e, 404,idNonexistent + "");
+        }
+    }
+
+    @Test
+    public void getIdsWithBTest_noneExist_shouldReturnEmptyList() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            OrderedSets.empty(),
+            elementClient.getIdsWithB(elementService.createPendantTo(idNode))
+        );
+    }
+
+    @Test
+    public void getIdsWithBTest_oneExists_shouldBeReturned() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            OrderedSets.singleton(idNode),
+            elementClient.getIdsWithB(idNode)
+        );
+    }
+
+    @Test
+    public void getIdsWithBTest_manyExist_shouldBeReturned() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            OrderedSets.with(
+                OrderedSets.singleton(idNode),
+                elementService.createPendantsTo(idNode, 5),
+                elementService.createLoopsOn(idNode, 5)
+            ),
+            elementClient.getIdsWithB(idNode)
+        );
+    }
+
+    @Test
+    public void getIdsWithBTest_doesNotExist_shouldReturn404() {
+        try {
+            elementClient.getIdsWithB(idNonexistent);
+            fail();
+        } catch(FeignException e) {
+            assertExceptionLike(e, 404,idNonexistent + "");
+        }
     }
 
     @Test
@@ -1763,6 +2144,89 @@ public class ElementTests {
                 idNonexistentMultiple.get(1)
             ).isEmpty()
         );
+    }
+
+
+    @Test
+    public void getElementsWithATest_noneExist_shouldReturnEmptyList() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            OrderedSets.empty(),
+            elementClient.getElementsWithA(elementService.createPendantFrom(idNode))
+        );
+    }
+
+    @Test
+    public void getElementsWithATest_oneExists_shouldBeReturned() {
+        Element node = mockElementService.node();
+        assertEquals(
+            OrderedSets.singleton(node),
+            elementClient.getElementsWithA(node.getId())
+        );
+    }
+
+    @Test
+    public void getElementsWithATest_manyExist_shouldBeReturned() {
+        Element node = mockElementService.node();
+        assertEquals(
+            OrderedSets.with(
+                OrderedSets.singleton(node),
+                mockElementService.pendantsFrom(node.getId(), 5),
+                mockElementService.loopsOn(node.getId(), 5)
+            ),
+            elementClient.getElementsWithA(node.getId())
+        );
+    }
+
+    @Test
+    public void getElementsWithATest_aDoesNotExist_shouldReturn404() {
+        try {
+            elementClient.getElementsWithA(idNonexistent);
+            fail();
+        } catch(FeignException e) {
+            assertExceptionLike(e, 404,idNonexistent + "");
+        }
+    }
+
+    @Test
+    public void getElementsWithBTest_noneExist_shouldReturnEmptyList() {
+        long idNode = elementService.createNode();
+        assertEquals(
+            OrderedSets.empty(),
+            elementClient.getElementsWithB(elementService.createPendantTo(idNode))
+        );
+    }
+
+    @Test
+    public void getElementsWithBTest_oneExists_shouldBeReturned() {
+        Element node = mockElementService.node();
+        assertEquals(
+            OrderedSets.singleton(node),
+            elementClient.getElementsWithB(node.getId())
+        );
+    }
+
+    @Test
+    public void getElementsWithBTest_manyExist_shouldBeReturned() {
+        Element node = mockElementService.node();
+        assertEquals(
+            OrderedSets.with(
+                OrderedSets.singleton(node),
+                mockElementService.pendantsTo(node.getId(), 5),
+                mockElementService.loopsOn(node.getId(), 5)
+            ),
+            elementClient.getElementsWithB(node.getId())
+        );
+    }
+
+    @Test
+    public void getElementsWithBTest_aDoesNotExist_shouldReturn404() {
+        try {
+            elementClient.getElementsWithB(idNonexistent);
+            fail();
+        } catch(FeignException e) {
+            assertExceptionLike(e, 404,idNonexistent + "");
+        }
     }
 
     @Test
@@ -2828,6 +3292,16 @@ public class ElementTests {
     }
 
     @Test
+    public void deleteElementTest_isStandardCategory_shouldReturn400() {
+        try {
+            elementClient.deleteElement(Categories.CATEGORY);
+            fail();
+        } catch(FeignException e) {
+            assertExceptionLike(e, 400, Categories.CATEGORY + "");
+        }
+    }
+
+    @Test
     public void deleteElementsTest_emptySet_shouldDoNothing() {
         elementClient.deleteElements(Collections.emptySet());
     }
@@ -2853,6 +3327,16 @@ public class ElementTests {
             fail();
         } catch(FeignException e) {
             assertExceptionLike(e, 409, Sets.newHashSet(idNode + "", idLoop + ""));
+        }
+    }
+
+    @Test
+    public void deleteElementsTest_singleton_isStandardCategory_shouldReturn400() {
+        try {
+            elementClient.deleteElements(Collections.singleton(Categories.CATEGORY));
+            fail();
+        } catch(FeignException e) {
+            assertExceptionLike(e, 400, Categories.CATEGORY + "");
         }
     }
 

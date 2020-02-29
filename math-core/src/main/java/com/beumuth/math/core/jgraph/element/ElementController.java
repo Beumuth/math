@@ -1,5 +1,6 @@
 package com.beumuth.math.core.jgraph.element;
 
+import com.beumuth.math.client.category.Categories;
 import com.beumuth.math.client.jgraph.CreateElementRequest;
 import com.beumuth.math.client.jgraph.Element;
 import com.beumuth.math.client.jgraph.UpdateElementRequest;
@@ -64,16 +65,78 @@ public class ElementController {
         return elementService.doAllElementsExist(ids);
     }
 
-    @RequestMapping(method=RequestMethod.GET, value="/elements/element/with/{a}/or/{b}/exists")
+    @RequestMapping(method=RequestMethod.GET, value="/elements/element/with/a/{a}/exists")
+    @ResponseBody
+    public boolean doesElementExistWithA(@PathVariable("a") long a) {
+        return elementService.doesElementExistWithA(a);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/elements/element/with/b/{b}/exists")
+    @ResponseBody
+    public boolean doesElementExistWithB(@PathVariable("b") long b) {
+        return elementService.doesElementExistWithB(b);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/elements/element/with/a/{a}/or/b/{b}/exists")
     @ResponseBody
     public boolean doesElementExistWithAOrB(@PathVariable("a") long a, @PathVariable("b") long b) {
         return elementService.doesElementWithAOrBExist(a, b);
     }
 
-    @RequestMapping(method=RequestMethod.GET, value="/elements/element/with/{a}/and/{b}/exists")
+    @RequestMapping(method=RequestMethod.GET, value="/elements/element/with/a/{a}/and/b/{b}/exists")
     @ResponseBody
     public boolean doesElementExistWithAAndB(@PathVariable("a") long a, @PathVariable("b") long b) {
         return elementService.doesElementExistWithAAndB(a, b);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/elements/element/{id}/has/a/{a}")
+    @ResponseBody
+    public boolean doesElementHaveA(
+        @PathVariable("id") long id,
+        @PathVariable("a") long a
+    ) throws ClientErrorException {
+        Validator
+            .returnStatus(NOT_FOUND)
+            .ifFalse(elementService.doesElementExist(id))
+            .withErrorMessage("Element with given id [" + id + "] does not exist")
+            .execute();
+        return elementService.doesElementHaveA(id, a);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/elements/have/a/{a}")
+    @ResponseBody
+    public List<Boolean> doElementsHaveA(
+        @PathVariable("a") long a,
+        @RequestParam(value="ids", required=false) OrderedSet<Long> ids
+    ) {
+        return ids == null || ids.isEmpty() ?
+            Collections.emptyList() :
+            elementService.doElementsHaveA(ids, a);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/elements/element/{id}/has/b/{b}")
+    @ResponseBody
+    public boolean doesElementHaveB(
+        @PathVariable("id") long id,
+        @PathVariable("b") long b
+    ) throws ClientErrorException {
+        Validator
+            .returnStatus(NOT_FOUND)
+            .ifFalse(elementService.doesElementExist(id))
+            .withErrorMessage("Element with given id [" + id + "] does not exist")
+            .execute();
+        return elementService.doesElementHaveB(id, b);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/elements/have/b/{b}")
+    @ResponseBody
+    public List<Boolean> doElementsHaveB(
+        @PathVariable("b") long b,
+        @RequestParam(value="ids", required=false) OrderedSet<Long> ids
+    ) {
+        return ids == null || ids.isEmpty() ?
+            Collections.emptyList() :
+            elementService.doElementsHaveB(ids, b);
     }
 
     @RequestMapping(method=RequestMethod.GET, path="/elements/element/{id}/isNode")
@@ -211,13 +274,25 @@ public class ElementController {
         return elementService.areElementsConnected(x, y);
     }
 
-    @RequestMapping(method=RequestMethod.GET, value="/elements/with/{a}/or/{b}/count")
+    @RequestMapping(method=RequestMethod.GET, value="/elements/with/a/{a}/count")
+    @ResponseBody
+    public int numElementsWithA(@PathVariable("a") long a) {
+        return elementService.numElementsWithA(a);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/elements/with/b/{b}/count")
+    @ResponseBody
+    public int numElementsWithB(@PathVariable("b") long b) {
+        return elementService.numElementsWithB(b);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/elements/with/a/{a}/or/b/{b}/count")
     @ResponseBody
     public int getNumElementsWithAOrB(@PathVariable("a") long a, @PathVariable("b") long b) {
         return elementService.numElementsWithAOrB(a, b);
     }
 
-    @RequestMapping(method=RequestMethod.GET, value="/elements/with/{a}/and/{b}/count")
+    @RequestMapping(method=RequestMethod.GET, value="/elements/with/a/{a}/and/b/{b}/count")
     @ResponseBody
     public int numElementsWithAAndB(@PathVariable("a") long a, @PathVariable("b") long b) {
         return elementService.numElementsWithAAndB(a, b);
@@ -285,13 +360,35 @@ public class ElementController {
         return elementService.getAllIds();
     }
 
-    @RequestMapping(method=RequestMethod.GET, value="/elements/ids/with/{a}/or/{b}")
+    @RequestMapping(method=RequestMethod.GET, value="/elements/ids/with/a/{a}")
+    @ResponseBody
+    public OrderedSet<Long> getIdsWithA(@PathVariable("a") long a) throws ClientErrorException {
+        Validator
+            .returnStatus(NOT_FOUND)
+            .ifFalse(elementService.doesElementExist(a))
+            .withErrorMessage("Element with given a [ " + a + "] does not exist")
+            .execute();
+        return elementService.getIdsWithA(a);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/elements/ids/with/b/{b}")
+    @ResponseBody
+    public OrderedSet<Long> getIdsWithB(@PathVariable("b") long b) throws ClientErrorException {
+        Validator
+            .returnStatus(NOT_FOUND)
+            .ifFalse(elementService.doesElementExist(b))
+            .withErrorMessage("Element with given a [ " + b + "] does not exist")
+            .execute();
+        return elementService.getIdsWithB(b);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/elements/ids/with/a/{a}/or/b/{b}")
     @ResponseBody
     public OrderedSet<Long> getIdsWithAOrB(@PathVariable("a") long a, @PathVariable("b") long b) {
         return elementService.getIdsWithAOrB(a, b);
     }
 
-    @RequestMapping(method=RequestMethod.GET, value="/elements/ids/with/{a}/and/{b}")
+    @RequestMapping(method=RequestMethod.GET, value="/elements/ids/with/a/{a}/and/b/{b}")
     @ResponseBody
     public OrderedSet<Long> getIdsWithAAndB(@PathVariable("a") long a, @PathVariable("b") long b) {
         return elementService.getIdsWithAAndB(a, b);
@@ -365,13 +462,35 @@ public class ElementController {
         return ids == null || ids.isEmpty() ? elementService.getAllElements() : elementService.getElements(ids);
     }
 
-    @RequestMapping(method=RequestMethod.GET, value="/elements/with/{a}/or/{b}")
+    @RequestMapping(method=RequestMethod.GET, value="/elements/with/a/{a}")
+    @ResponseBody
+    public OrderedSet<Element> getElementsWithA(@PathVariable("a") long a) throws ClientErrorException {
+        Validator
+            .returnStatus(NOT_FOUND)
+            .ifFalse(elementService.doesElementExist(a))
+            .withErrorMessage("Element with given a [" + a + "] does not exist")
+            .execute();
+        return elementService.getElementsWithA(a);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/elements/with/b/{b}")
+    @ResponseBody
+    public OrderedSet<Element> getElementsWithB(@PathVariable("b") long b) throws ClientErrorException {
+        Validator
+            .returnStatus(NOT_FOUND)
+            .ifFalse(elementService.doesElementExist(b))
+            .withErrorMessage("Element with given b [" + b + "] does not exist")
+            .execute();
+        return elementService.getElementsWithB(b);
+    }
+
+    @RequestMapping(method=RequestMethod.GET, value="/elements/with/a/{a}/or/b/{b}")
     @ResponseBody
     public OrderedSet<Element> getElementsWithAOrB(@PathVariable("a") long a, @PathVariable("b") long b) {
         return elementService.getElementsWithAOrB(a, b);
     }
 
-    @RequestMapping(method=RequestMethod.GET, value="/elements/with/{a}/and/{b}")
+    @RequestMapping(method=RequestMethod.GET, value="/elements/with/a/{a}/and/b/{b}")
     @ResponseBody
     public OrderedSet<Element> getElementsWithAAndB(@PathVariable("a") long a, @PathVariable("b") long b) {
         return elementService.getElementsWithAAndB(a, b);
@@ -578,7 +697,7 @@ public class ElementController {
         Validator
             .returnStatus(BAD_REQUEST)
             .ifFalse(elementService.doesElementExist(request.getA()))
-            .withErrorMessage("Element with given a [" + request.getA() + "] does not exist")
+            .withErrorMessage("Element with given b [" + request.getA() + "] does not exist")
             .execute();
         Validator
             .returnStatus(BAD_REQUEST)
@@ -617,16 +736,16 @@ public class ElementController {
             .withErrorMessage("Elements with the following ids do not exist: " + idsThatDoNotExist)
             .execute();
 
-        //Ensure that Elements with the given a's and b's exist
+        //Ensure that Elements with the given b's and b's exist
         OrderedSet<Long> idAsThatDoNotExist = elementService.getIdsThatDoNotExist(
-            requests //Read as a's
+            requests //Read as b's
                 .stream()
                 .mapToLong(UpdateElementRequest::getA)
                 .boxed()
                 .collect(Collectors.toCollection(OrderedSet::new))
         );
         OrderedSet<Long> idBsThatDoNotExist = elementService.getIdsThatDoNotExist(
-            requests //Read as a's
+            requests //Read as b's
                 .stream()
                 .mapToLong(UpdateElementRequest::getB)
                 .boxed()
@@ -637,7 +756,7 @@ public class ElementController {
                 .returnStatus(BAD_REQUEST)
                 .always()
                 .withErrorMessage(
-                    "Elements with the given a elements do not exist " + idAsThatDoNotExist.toString() + ". " +
+                    "Elements with the given b elements do not exist " + idAsThatDoNotExist.toString() + ". " +
                     "Elements with the given b elements do not exist " + idBsThatDoNotExist.toString() + "."
                 ).execute();
         }
@@ -653,6 +772,15 @@ public class ElementController {
             //Yes. Nothing to do.
             return;
         }
+
+        //Ensure it is not a standard category
+        Validator
+            .returnStatus(BAD_REQUEST)
+            .ifTrue(Categories.ALL_STANDARD.contains(id))
+            .withErrorMessage(
+                "The given id [" + id + "] is a standard Category. Standard Categories cannot be deleted."
+            ).execute();
+
         //Ensure that no element is connected to or from the element
         OrderedSet<Element> endpoints = elementService.getEndpointsOf(id);
         Validator
@@ -672,7 +800,17 @@ public class ElementController {
             return;
         }
 
-        //Get the ids of elements whose endpoint list is not a subset of the given ids
+        //Ensure none of the Elements are standard categories
+        Set<Long> idsStandardCatgoriesBeingDeleted = Sets.intersection(ids, Categories.ALL_STANDARD);
+        Validator
+            .returnStatus(BAD_REQUEST)
+            .ifFalse(idsStandardCatgoriesBeingDeleted.isEmpty())
+            .withErrorMessage(
+                "The following standard categories are included for deletion: [" +
+                    idsStandardCatgoriesBeingDeleted + "]. Standard Categories cannot be deleted"
+            ).execute();
+
+        //Get the ids of elements whose endpoint list is not b subset of the given ids
         OrderedSet<Long> orderedIds = OrderedSets.with(ids);
         List<OrderedSet<Long>> idsEndpointsOfForEach = elementService.getIdsEndpointsOfForEach(orderedIds);
         Map<Long, Set> invalidIds = Maps.newHashMap();
@@ -689,7 +827,7 @@ public class ElementController {
             .ifFalse(invalidIds.isEmpty())
             .withErrorMessage(
                 "There were elements that could not be deleted due to containing endpoints not being deleted." +
-                " Here is a map from the invalid ids to its endpoints that are not being deleted: " + invalidIds
+                " Here is b map from the invalid ids to its endpoints that are not being deleted: " + invalidIds
             ).execute();
 
         elementService.deleteElements(ids);
@@ -701,7 +839,7 @@ public class ElementController {
             .returnStatus(BAD_REQUEST)
             .ifTrue(request.getA() < 0 && -1 * request.getA() >= numRequests)
             .withErrorMessage(
-                "Was given a [" + request.getA() + "], which indicates that a is to reference the id of the " +
+                "Was given b [" + request.getA() + "], which indicates that b is to reference the id of the " +
                     request.getA() + "th element of this request; but the request only contains " + numRequests +
                     " elements."
             ).execute();
@@ -709,14 +847,14 @@ public class ElementController {
             .returnStatus(BAD_REQUEST)
             .ifTrue(request.getB() < 0 && -1 * request.getB() >= numRequests)
             .withErrorMessage(
-                "Was given b [" + request.getB() + "], which indicates that a is to reference the id of the " +
+                "Was given b [" + request.getB() + "], which indicates that b is to reference the id of the " +
                     request.getB() + "th element of this request; but the request only contains " + numRequests +
                     " elements."
             ).execute();
         Validator
             .returnStatus(BAD_REQUEST)
             .ifFalse(request.getA() <= 0 || elementService.doesElementExist(request.getA()))
-            .withErrorMessage("Given a [" + request.getA() + "] does not exist")
+            .withErrorMessage("Given b [" + request.getA() + "] does not exist")
             .execute();
         Validator
             .returnStatus(BAD_REQUEST)
