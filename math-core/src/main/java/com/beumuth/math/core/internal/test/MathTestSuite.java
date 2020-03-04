@@ -2,9 +2,9 @@ package com.beumuth.math.core.internal.test;
 
 import com.beumuth.math.core.internal.application.ApplicationTests;
 import com.beumuth.math.core.internal.environment.EnvironmentTests;
+import com.beumuth.math.core.internal.version.ontologyversion.OntologyVersionTests;
+import com.beumuth.math.core.internal.version.versiontransgrade.VersionTransgradeTests;
 import com.beumuth.math.core.jgraph.element.ElementTests;
-import com.beumuth.math.core.settheory.object.ObjectTests;
-import com.beumuth.math.core.settheory.orderedpair.OrderedPairTests;
 import com.beumuth.math.core.settheory.set.SetTests;
 import com.google.common.collect.Lists;
 import org.junit.runner.RunWith;
@@ -18,9 +18,9 @@ import java.util.Optional;
     ApplicationTests.class,
     EnvironmentTests.class,
     ElementTests.class,
-    ObjectTests.class,
-    OrderedPairTests.class,
-    SetTests.class
+    SetTests.class,
+    OntologyVersionTests.class,
+    VersionTransgradeTests.class
 })
 public class MathTestSuite {
     public static Optional<Class> getTestClassByName(String name) {

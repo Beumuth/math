@@ -15,11 +15,11 @@ import java.util.stream.Collectors;
 
 @Service
 public class ComponentService {
-    @Autowired
     private DatabaseService databaseService;
 
-    @Autowired
-    private ElementService elementService;
+    public ComponentService(@Autowired DatabaseService databaseService) {
+        this.databaseService = databaseService;
+    }
 
     /**
      * Get the component of the Element with the given id; that is, the set ids of Elements connected to it.
@@ -95,26 +95,5 @@ public class ComponentService {
             .stream()
             .map(this::getComponent)
             .collect(Collectors.toSet());
-    }
-
-    /**
-     * Delete the component of the Element with the given id.
-     * @param id
-     */
-    public void deleteComponent(long id) {
-        elementService.deleteElements(getComponentIds(id));
-    }
-
-    /**
-     * Delete the j-graph connected to the Element with the given id.
-     * @param ids
-     */
-    public void deleteComponents(Set<Long> ids) {
-        elementService.deleteElements(
-            getComponentsIds(ids)
-                .stream()
-                .flatMap(Set::stream)
-                .collect(Collectors.toSet())
-        );
     }
 }

@@ -9,8 +9,8 @@ import java.util.Set;
 @AllArgsConstructor
 public class ApplicationConfiguration {
     public ApplicationMode mode;
-    public Set<EnvironmentConfiguration> environments;
     public String activeEnvironment;
+    public Set<EnvironmentConfiguration> environments;
 
     /**
      * Copy constructor

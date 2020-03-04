@@ -1,7 +1,8 @@
 package com.beumuth.math.core.settheory.object;
 
+import com.beumuth.math.client.Clients;
 import com.beumuth.math.client.settheory.object.ObjectClient;
-import com.beumuth.math.core.internal.client.ClientService;
+import com.beumuth.math.core.internal.client.ClientConfigurations;
 import com.google.common.collect.Sets;
 import feign.FeignException;
 import org.junit.Assert;
@@ -18,8 +19,6 @@ import java.util.Set;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class ObjectTests {
-    @Autowired
-    private ClientService clientService;
 
     @Autowired
     private ObjectService objectService;
@@ -28,7 +27,7 @@ public class ObjectTests {
 
     @Before
     public void setupTests() {
-        objectClient = clientService.getClient(ObjectClient.class);
+        objectClient = Clients.getClient(ObjectClient.class, ClientConfigurations.LOCAL);
     }
 
     @Test

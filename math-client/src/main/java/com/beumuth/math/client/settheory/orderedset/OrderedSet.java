@@ -172,4 +172,16 @@ public class OrderedSet<T> implements List<T>, Set<T> {
     public String toString() {
         return implementation.toString();
     }
+
+    public Optional<T> first() {
+        return implementation.isEmpty() ?
+            Optional.empty() :
+            Optional.of(implementation.get(0));
+    }
+
+    public Optional<T> last() {
+        return implementation.isEmpty() ?
+            Optional.empty() :
+            Optional.of(implementation.get(implementation.size() - 1));
+    }
 }

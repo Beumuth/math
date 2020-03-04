@@ -73,28 +73,18 @@
             <version>0.1.1-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.8.5</version>
-        </dependency>
-        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>2.6</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.8.1</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fatboyindustrial.gson-jodatime-serialisers</groupId>
-            <artifactId>gson-jodatime-serialisers</artifactId>
-            <version>1.6.0</version>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.bitbucket.radistao.test</groupId>
+            <artifactId>before-after-spring-test-runner</artifactId>
+            <version>0.1.0</version>
         </dependency>
     </dependencies>
 
@@ -106,5 +96,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

@@ -1,11 +1,13 @@
 package com.beumuth.math.core.internal.environment;
 
+import com.beumuth.math.client.Clients;
 import com.beumuth.math.client.internal.application.ApplicationConfiguration;
+import com.beumuth.math.client.internal.application.ApplicationMode;
 import com.beumuth.math.client.internal.environment.EnvironmentClient;
 import com.beumuth.math.client.internal.environment.EnvironmentConfiguration;
 import com.beumuth.math.core.internal.application.ApplicationService;
 import com.beumuth.math.core.internal.application.ApplicationTests;
-import com.beumuth.math.core.internal.client.ClientService;
+import com.beumuth.math.core.internal.client.ClientConfigurations;
 import feign.FeignException;
 import org.junit.After;
 import org.junit.Assert;
@@ -28,9 +30,6 @@ public class EnvironmentTests {
     private static EnvironmentClient client;
 
     @Autowired
-    private ClientService clientService;
-
-    @Autowired
     private ApplicationService applicationService;
 
     @Autowired
@@ -39,7 +38,7 @@ public class EnvironmentTests {
     @Before
     public void setupTests() {
         if(! initialized) {
-            client = clientService.getClient(EnvironmentClient.class);
+            client = Clients.getClient(EnvironmentClient.class, ClientConfigurations.LOCAL);
             startingConfiguration = applicationService.getApplicationConfiguration();
 
             //Set total tests - credit https://stackoverflow.com/a/48981027/3816779
@@ -81,8 +80,8 @@ public class EnvironmentTests {
     public void updateActiveEnvironmentTest_shouldSucceed() {
         try {
             //Add mock environment
-            EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
-            environmentService.addEnvironment(MockEnvironments.validEnvironment());
+            EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
+            environmentService.addEnvironment(MockEnvironments.valid());
 
             //Set active environment to the mock
             client.setActiveEnvironment(mockEnvironment.name);
@@ -107,19 +106,29 @@ public class EnvironmentTests {
     @Test
     public void updateEnvironmentTest_shouldSucceed() {
         //Create and add a mock environment
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         environmentService.addEnvironment(mockEnvironment);
         try {
-
             //Update the mock environment's base url
-            String newBaseUrl = "http://newMock.com";
-            mockEnvironment.baseUrl = newBaseUrl;
+            mockEnvironment
+                .databaseConfigurations
+                .get(ApplicationMode.TEST)
+                .database += "-updated";
             client.updateEnvironment(mockEnvironment.name, mockEnvironment);
 
             //Ensure that the update applied
-            Assert.assertEquals(newBaseUrl, environmentService.getEnvironment(mockEnvironment.name).get().baseUrl);
-        } catch(Exception e) {
-            throw e;
+            Assert.assertEquals(
+                mockEnvironment
+                    .databaseConfigurations
+                    .get(ApplicationMode.TEST)
+                    .database,
+                environmentService
+                    .getEnvironment(mockEnvironment.name)
+                    .get()
+                    .databaseConfigurations
+                    .get(ApplicationMode.TEST)
+                    .database
+            );
         } finally {
             //It's important the mockEnvironment is removed for future tests
             environmentService.deleteEnvironment(mockEnvironment.name);
@@ -147,7 +156,7 @@ public class EnvironmentTests {
         try {
             client.updateEnvironment(
                 "thisEnvironmentDoesNotExist",
-                MockEnvironments.validEnvironment()
+                MockEnvironments.valid()
             );
         } catch (FeignException e) {
             Assert.assertEquals(404, e.status());
@@ -157,7 +166,7 @@ public class EnvironmentTests {
     @Test
     public void updateEnvironmentWithNullName_shouldReturn400() {
         //Create and add a mock environment
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         environmentService.addEnvironment(mockEnvironment);
         try {
             //Add new environment with null name
@@ -177,7 +186,7 @@ public class EnvironmentTests {
     @Test
     public void updateEnvironmentWithNullBaseUrl_shouldReturn400() {
         //Create and add a mock environment
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         environmentService.addEnvironment(mockEnvironment);
         try {
             //Update the mock environment's base url to null
@@ -194,18 +203,18 @@ public class EnvironmentTests {
     }
 
     @Test
-    public void updateEnvironmentWithNullDatabaseConfiguration_shouldReturn400() {
+    public void updateEnvironmentWithNullDatabaseConfigurations_shouldReturn400() {
         //Create and add a mock environment
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         environmentService.addEnvironment(mockEnvironment);
         try {
             //Update the mock environment's base url to null
-            mockEnvironment.databaseConfiguration = null;
+            mockEnvironment.databaseConfigurations = null;
             client.updateEnvironment(mockEnvironment.name, mockEnvironment);
         } catch (FeignException e) {
             //Should throw 400
             Assert.assertEquals(400, e.status());
-            Assert.assertTrue(e.contentUTF8().contains("databaseConfiguration"));
+            Assert.assertTrue(e.contentUTF8().contains("databaseConfigurations"));
         } finally {
             //Remove the mock environment
             environmentService.deleteEnvironment(mockEnvironment.name);
@@ -215,7 +224,7 @@ public class EnvironmentTests {
     @Test
     public void updateEnvironmentWithNullDatabaseConfigurationHost_shouldReturn400() {
         //Create and add a mock environment
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         environmentService.addEnvironment(mockEnvironment);
         try {
             //Update the mock databaseConfiguration's host to null
@@ -236,7 +245,7 @@ public class EnvironmentTests {
     @Test
     public void updateEnvironmentWithNullDatabaseConfigurationPort_shouldReturn400() {
         //Create and add a mock environment
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         environmentService.addEnvironment(mockEnvironment);
         try {
             //Update the mock databaseConfiguration's port to null
@@ -257,7 +266,7 @@ public class EnvironmentTests {
     @Test
     public void updateEnvironmentWithNullDatabaseConfigurationUsername_shouldReturn400() {
         //Create and add a mock environment
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         environmentService.addEnvironment(mockEnvironment);
         try {
             //Update the mock databaseConfiguration's username to null
@@ -278,7 +287,7 @@ public class EnvironmentTests {
     @Test
     public void updateEnvironmentWithNullDatabaseConfigurationPassword_shouldReturn400() {
         //Create and add a mock environment
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         environmentService.addEnvironment(mockEnvironment);
         try {
             //Update the mock databaseConfiguration's password to null
@@ -299,7 +308,7 @@ public class EnvironmentTests {
     @Test
     public void updateEnvironmentWithNullDatabaseConfigurationDatabase_shouldReturn400() {
         //Create and add a mock environment
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         environmentService.addEnvironment(mockEnvironment);
         try {
             //Update the mock databaseConfiguration's database to null
@@ -320,7 +329,7 @@ public class EnvironmentTests {
     @Test
     public void updateEnvironmentWithNullDatabaseConfigurationIntegrationTestDatabase_shouldReturn400() {
         //Create and add a mock environment
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         environmentService.addEnvironment(mockEnvironment);
         try {
             //Update the mock databaseConfiguration's integrationTestDatabase to null
@@ -341,7 +350,7 @@ public class EnvironmentTests {
 
     @Test
     public void createValidEnvironment_shouldSucceed() {
-        EnvironmentConfiguration validEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration validEnvironment = MockEnvironments.valid();
         try {
             //Create
             client.createEnvironment(validEnvironment);
@@ -357,7 +366,7 @@ public class EnvironmentTests {
     @Test
     public void createEnvironmentWithDuplicateName_shouldReturn409() {
         //Create a mock environment with the same name as the active environment
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         mockEnvironment.name = environmentService.getActiveEnvironment().name;
         try {
             //Attempt to create the mock environment
@@ -374,7 +383,7 @@ public class EnvironmentTests {
     @Test
     public void createEnvironmentWithNullName_shouldReturn400() {
         //Create a mock environment with a null name
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         mockEnvironment.name = null;
         try {
             client.createEnvironment(mockEnvironment);
@@ -391,7 +400,7 @@ public class EnvironmentTests {
     @Test
     public void createEnvironmentWithNullBaseUrl_shouldReturn400() {
         //Create a mock environment with a null baseUrl
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         mockEnvironment.baseUrl = null;
         try {
             client.createEnvironment(mockEnvironment);
@@ -408,7 +417,7 @@ public class EnvironmentTests {
     @Test
     public void createEnvironmentWithNullDatabaseConfiguration_shouldReturn400() {
         //Create and a mock environment with a null databaseConfiguration
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         mockEnvironment.databaseConfiguration = null;
         try {
             //Update the mock environment's base url to null
@@ -426,7 +435,7 @@ public class EnvironmentTests {
     @Test
     public void createEnvironmentWithNullDatabaseConfigurationHost_shouldReturn400() {
         //Create a mock environment with a null databaseConfiguration host
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         mockEnvironment.databaseConfiguration.host = null;
         try {
             client.createEnvironment(mockEnvironment);
@@ -445,7 +454,7 @@ public class EnvironmentTests {
     @Test
     public void createEnvironmentWithNullDatabaseConfigurationPort_shouldReturn400() {
         //Create a mock environment with a null databaseConfiguration port
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         mockEnvironment.databaseConfiguration.port = null;
         try {
             //Update the mock databaseConfiguration's port to null
@@ -465,7 +474,7 @@ public class EnvironmentTests {
     @Test
     public void createEnvironmentWithNullDatabaseConfigurationUsername_shouldReturn400() {
         //Create a mock environment with a null databaseConfiguration username
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         mockEnvironment.databaseConfiguration.username = null;
         try {
             client.createEnvironment(mockEnvironment);
@@ -484,7 +493,7 @@ public class EnvironmentTests {
     @Test
     public void createEnvironmentWithNullDatabaseConfigurationPassword_shouldReturn400() {
         //Create a mock environment with a null databaseConfiguration password
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         mockEnvironment.databaseConfiguration.password = null;
         try {
             client.createEnvironment(mockEnvironment);
@@ -503,7 +512,7 @@ public class EnvironmentTests {
     @Test
     public void createEnvironmentWithNullDatabaseConfigurationDatabase_shouldReturn400() {
         //Create a mock environment with a null databaseConfiguration database
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         mockEnvironment.databaseConfiguration.database = null;
         try {
             client.createEnvironment(mockEnvironment);
@@ -522,7 +531,7 @@ public class EnvironmentTests {
     @Test
     public void createEnvironmentWithNullDatabaseConfigurationIntegrationTestDatabase_shouldReturn400() {
         //Create a mock environment with a null databaseConfiguration integrationTestDatabase
-        EnvironmentConfiguration mockEnvironment = MockEnvironments.validEnvironment();
+        EnvironmentConfiguration mockEnvironment = MockEnvironments.valid();
         mockEnvironment.databaseConfiguration.integrationTestDatabase = null;
         try {
             client.createEnvironment(mockEnvironment);

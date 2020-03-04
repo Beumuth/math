@@ -1,5 +1,6 @@
 package com.beumuth.math.core.jgraph.element;
 
+import com.beumuth.math.client.internal.version.ontologyversion.OntologyVersions;
 import com.beumuth.math.client.jgraph.CreateElementRequest;
 import com.beumuth.math.client.jgraph.Element;
 import com.beumuth.math.client.jgraph.UpdateElementRequest;
@@ -7,16 +8,17 @@ import com.beumuth.math.client.settheory.orderedset.OrderedSet;
 import com.beumuth.math.client.settheory.orderedset.OrderedSets;
 import com.beumuth.math.core.internal.database.DatabaseService;
 import com.beumuth.math.core.internal.database.MathBeanPropertyRowMapper;
+import com.beumuth.math.core.internal.version.ontologyversion.OntologyVersionService;
 import com.beumuth.math.core.jgraph.component.ComponentService;
 import com.google.common.collect.ImmutableMap;
 import org.assertj.core.util.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -28,6 +30,7 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 @Service("JGraphElementService")
+@DependsOn("ontologyVersionService")
 public class ElementService {
 
     public static final MathBeanPropertyRowMapper<Element> ROW_MAPPER =
@@ -75,26 +78,31 @@ public class ElementService {
         return result;
     };
 
-    @Autowired
     private ComponentService componentService;
-
-    @Autowired
     private DatabaseService databaseService;
-
     private AtomicLong nextId;
 
-    @PostConstruct
-    public void initialize() {
-        Long maxId = databaseService
-            .getJdbcTemplate()
-            .queryForObject(
-                "SELECT MAX(id) FROM JGraphElement",
-                Long.class
-            );
+    public ElementService(
+        @Autowired DatabaseService databaseService,
+        @Autowired ComponentService componentService,
+        @Autowired OntologyVersionService ontologyVersionService
+    ) {
+        this.databaseService = databaseService;
+        this.componentService = componentService;
+
+        Long maxId = null;
+        if(! ontologyVersionService.getCurrentOntologyVersion().equals(OntologyVersions.VERSION_0_0_0)) {
+            maxId = databaseService
+                .getJdbcTemplate()
+                .queryForObject(
+                    "SELECT MAX(id) FROM JGraphElement",
+                    Long.class
+                );
+        }
         if(maxId != null) {
             nextId = new AtomicLong(maxId + 1);
         } else {
-            reset();
+            nextId = new AtomicLong(1);
         }
     }
 

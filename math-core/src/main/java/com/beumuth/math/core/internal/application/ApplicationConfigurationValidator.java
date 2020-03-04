@@ -12,8 +12,13 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ApplicationConfigurationValidator implements Validator<ApplicationConfiguration> {
-    @Autowired
     private EnvironmentConfigurationValidator environmentConfigurationValidator;
+
+    public ApplicationConfigurationValidator(
+        @Autowired EnvironmentConfigurationValidator environmentConfigurationValidator
+    ) {
+        this.environmentConfigurationValidator = environmentConfigurationValidator;
+    }
 
     @Override
     public ValidationResult validate(ApplicationConfiguration instance) {

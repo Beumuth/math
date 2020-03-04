@@ -2,6 +2,7 @@ package com.beumuth.math.core.internal.environment;
 
 import com.beumuth.math.client.internal.application.ApplicationConfiguration;
 import com.beumuth.math.client.internal.environment.EnvironmentConfiguration;
+import com.beumuth.math.client.internal.version.ontologyversion.SemanticVersion;
 import com.beumuth.math.core.internal.application.ApplicationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -86,5 +87,17 @@ public class EnvironmentService {
             }
         }
         applicationService.setConfiguration(application);
+    }
+
+    public SemanticVersion getCurrentVersion() {
+        return getActiveEnvironment()
+            .currentVersions
+            .get(applicationService.getApplicationMode());
+    }
+
+    public void setCurrentVersion(SemanticVersion version) {
+        getActiveEnvironment()
+            .currentVersions
+            .put(applicationService.getApplicationMode(), version);
     }
 }

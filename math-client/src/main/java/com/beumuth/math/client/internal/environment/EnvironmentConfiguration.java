@@ -1,25 +1,28 @@
 package com.beumuth.math.client.internal.environment;
 
+import com.beumuth.math.client.internal.application.ApplicationMode;
 import com.beumuth.math.client.internal.database.DatabaseConfiguration;
+import com.beumuth.math.client.internal.version.ontologyversion.SemanticVersion;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
+import java.util.Map;
 import java.util.Objects;
 
 @AllArgsConstructor
 @NoArgsConstructor
 public class EnvironmentConfiguration {
     public String name;
-    public String baseUrl;
-    public DatabaseConfiguration databaseConfiguration;
+    public Map<ApplicationMode, DatabaseConfiguration> databaseConfigurations;
+    public Map<ApplicationMode, SemanticVersion> currentVersions;
 
     /**
      * Copy constructor
      */
     public EnvironmentConfiguration(EnvironmentConfiguration other) {
         this.name = other.name;
-        this.baseUrl = other.baseUrl;
-        this.databaseConfiguration = new DatabaseConfiguration(other.databaseConfiguration);
+        this.databaseConfigurations = other.databaseConfigurations;
+        this.currentVersions = other.currentVersions;
     }
 
     public static EnvironmentConfiguration copy(EnvironmentConfiguration other) {

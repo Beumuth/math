@@ -1,17 +1,18 @@
 package com.beumuth.math.client.internal.database;
 
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode
 public class DatabaseConfiguration {
     public String host;
     public Integer port;
     public String username;
     public String password;
     public String database;
-    public String integrationTestDatabase;
 
     /**
      * Copy constructor
@@ -22,7 +23,6 @@ public class DatabaseConfiguration {
         username = other.username;
         password = other.password;
         database = other.database;
-        integrationTestDatabase = other.integrationTestDatabase;
     }
 
     public static WithHostStep newBuilder() {
@@ -35,7 +35,6 @@ public class DatabaseConfiguration {
         WithUsernameStep,
         WithPasswordStep,
         WithDatabaseNameStep,
-        WithIntegrationTestDatabaseNameStep,
         BuildStep {
 
         private DatabaseConfiguration databaseConfiguration;
@@ -46,7 +45,7 @@ public class DatabaseConfiguration {
             return this;
         }
 
-        public WithPortStep withGivenHost(String host) {
+        public WithPortStep withHost(String host) {
             databaseConfiguration = new DatabaseConfiguration();
             databaseConfiguration.host = host;
             return this;
@@ -57,7 +56,7 @@ public class DatabaseConfiguration {
             return this;
         }
 
-        public WithUsernameStep withGivenPort(int port) {
+        public WithUsernameStep withPort(int port) {
             databaseConfiguration.port = port;
             return this;
         }
@@ -67,7 +66,7 @@ public class DatabaseConfiguration {
             return this;
         }
 
-        public WithPasswordStep withGivenUsername(String username) {
+        public WithPasswordStep withUsername(String username) {
             databaseConfiguration.username = username;
             return this;
         }
@@ -77,18 +76,13 @@ public class DatabaseConfiguration {
             return this;
         }
 
-        public WithDatabaseNameStep withGivenPassword(String password) {
+        public WithDatabaseNameStep withPassword(String password) {
             databaseConfiguration.password = password;
             return this;
         }
 
-        public WithIntegrationTestDatabaseNameStep withGivenDatabaseName(String databaseName) {
+        public BuildStep withDatabase(String databaseName) {
             databaseConfiguration.database = databaseName;
-            return this;
-        }
-
-        public BuildStep withGivenIntegrationTestDatabaseName(String databaseName) {
-            databaseConfiguration.integrationTestDatabase = databaseName;
             return this;
         }
 
@@ -99,30 +93,26 @@ public class DatabaseConfiguration {
 
     public interface WithHostStep {
         WithPortStep withLocalhost();
-        WithPortStep withGivenHost(String host);
+        WithPortStep withHost(String host);
     }
 
     public interface WithPortStep {
         WithUsernameStep withDefaultMySqlPort();
-        WithUsernameStep withGivenPort(int port);
+        WithUsernameStep withPort(int port);
     }
 
     public interface WithUsernameStep {
         WithPasswordStep withRootUsername();
-        WithPasswordStep withGivenUsername(String username);
+        WithPasswordStep withUsername(String username);
     }
 
     public interface WithPasswordStep {
         WithDatabaseNameStep withNoPassword();
-        WithDatabaseNameStep withGivenPassword(String password);
+        WithDatabaseNameStep withPassword(String password);
     }
 
     public interface WithDatabaseNameStep {
-        WithIntegrationTestDatabaseNameStep withGivenDatabaseName(String databaseName);
-    }
-
-    public interface WithIntegrationTestDatabaseNameStep {
-        BuildStep withGivenIntegrationTestDatabaseName(String databaseName);
+        BuildStep withDatabase(String databaseName);
     }
 
     public interface BuildStep {

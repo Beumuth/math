@@ -1,11 +1,11 @@
 package com.beumuth.math.core.internal.application;
 
+import com.beumuth.math.client.external.gson.Gsons;
 import com.beumuth.math.client.internal.application.ApplicationConfiguration;
 import com.beumuth.math.client.internal.application.ApplicationMode;
-import com.google.gson.Gson;
+import com.beumuth.math.core.internal.environment.EnvironmentService;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -15,12 +15,17 @@ import java.nio.charset.StandardCharsets;
 
 @Service
 public class ApplicationService {
-    @Value("${configurationLocation}")
+
+    private EnvironmentService environmentService;
     private String configurationLocation;
 
-    @Autowired
-    @Qualifier("prettyPrint")
-    private Gson gson;
+    public ApplicationService(
+        @Autowired EnvironmentService environmentService,
+        @Value("${configurationLocation}") String configurationLocation
+    ) {
+        this.environmentService = environmentService;
+        this.configurationLocation = configurationLocation;
+    }
 
     public boolean doesConfigurationExist() {
         return new File(configurationLocation).exists();
@@ -28,10 +33,12 @@ public class ApplicationService {
 
     public ApplicationConfiguration getApplicationConfiguration() {
         try {
-            return gson.fromJson(
-                FileUtils.readFileToString(new File(configurationLocation), StandardCharsets.UTF_8),
-                ApplicationConfiguration.class
-            );
+            return Gsons
+                .prettyPrintGson()
+                .fromJson(
+                    FileUtils.readFileToString(new File(configurationLocation), StandardCharsets.UTF_8),
+                    ApplicationConfiguration.class
+                );
         }
         catch(IOException e) {
             throw new RuntimeException(e);
@@ -42,7 +49,9 @@ public class ApplicationService {
         try {
             FileUtils.writeStringToFile(
                 new File(configurationLocation),
-                gson.toJson(configuration),
+                Gsons
+                    .prettyPrintGson()
+                    .toJson(configuration),
                 StandardCharsets.UTF_8
             );
         } catch(IOException e) {

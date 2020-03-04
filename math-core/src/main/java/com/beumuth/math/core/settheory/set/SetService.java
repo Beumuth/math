@@ -1,21 +1,18 @@
 package com.beumuth.math.core.settheory.set;
 
 import com.beumuth.math.client.settheory.set.Set;
-import com.beumuth.math.core.internal.database.MathBeanPropertyRowMapper;
 import com.beumuth.math.core.internal.database.DatabaseService;
-import com.beumuth.math.core.settheory.object.ObjectService;
-import com.beumuth.math.core.settheory.element.CreateElementRequest;
-import com.beumuth.math.core.settheory.element.ElementService;
+import com.beumuth.math.core.internal.database.MathBeanPropertyRowMapper;
+import com.beumuth.math.core.jgraph.element.ElementService;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
+import java.util.Collections;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class SetService {
@@ -28,84 +25,32 @@ public class SetService {
     @Autowired
     private ElementService elementService;
 
-    @Autowired
-    private ObjectService objectService;
+    private long universalSet;
+
+    @PostConstruct
+    public void initialize() {
+        universalSet = elementService.createNode();
+    }
 
     public boolean doesSetExist(long id) {
-        try {
-            return databaseService
-                .getNamedParameterJdbcTemplate()
-                .queryForObject(
-                "SELECT 1 FROM Sset WHERE id=:id",
-                    ImmutableMap.of("id", id),
-                    Boolean.class
-                );
-        } catch(EmptyResultDataAccessException e) {
-            return false;
-        }
+        return false;
     }
 
     public Optional<Set> getSet(long id) {
-        try {
-            return Optional.of (
-                databaseService
-                    .getNamedParameterJdbcTemplate()
-                    .queryForObject(
-                    "SELECT id, idObject FROM Sset WHERE id=:id",
-                        ImmutableMap.of("id", id),
-                        ROW_MAPPER
-                    )
-            );
-        } catch(EmptyResultDataAccessException e) {
-            return Optional.empty();
-        }
+        return Optional.empty();
     }
 
-    public java.util.Set<Long> getSetsThatDoNotExist(java.util.Set<Long> idSets) {
-        return Sets.difference(
-            idSets,
-            Sets.newHashSet(
-                databaseService
-                    .getNamedParameterJdbcTemplate()
-                    .queryForList(
-                        "SELECT id FROM Sset WHERE id IN (:idSets)",
-                        ImmutableMap.of("idSets", idSets),
-                        Long.class
-                    )
-            )
-        );
+    public java.util.Set<Long> getSetsThatDoNotExist(java.util.Set<Long> ids) {
+        return Collections.emptySet();
     }
 
     public java.util.Set<Long> getSetElements(long idSet) {
-        try {
-            return Sets.newHashSet(
-                databaseService
-                    .getNamedParameterJdbcTemplate()
-                    .queryForList(
-                        "SELECT idObject FROM Element WHERE idSet=:idSet",
-                        ImmutableMap.of("idSet", idSet),
-                        Long.class
-                    )
-            );
-        } catch(EmptyResultDataAccessException e) {
-            throw new RuntimeException("Set with given idSet [" + idSet + "] does not exist");
-        }
+        return null;
+//        return elementService.getIdsWithB(idSet);
     }
 
     public long createSet() {
-        GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
-        databaseService
-            .getNamedParameterJdbcTemplate()
-            .update(
-                "INSERT INTO Sset (idObject) VALUES (:idObject)",
-                    new MapSqlParameterSource(
-                        ImmutableMap.of(
-                            "idObject", objectService.createObject()
-                        )
-                    ),
-                    keyHolder
-            );
-        return keyHolder.getKey().longValue();
+        return elementService.createNode();
     }
 
     public void deleteSet(long id) {
@@ -139,12 +84,12 @@ public class SetService {
         }
 
         long idSet = createSet();
-        elementService.createElements(
-            idObjects
-                .stream()
-                .map(idElement -> new CreateElementRequest(idSet, idElement))
-                .collect(Collectors.toSet())
-        );
+//        elementService.createElements(
+//            idObjects
+//                .stream()
+//                .map(idElement -> new CreateElementRequest(idSet, idElement))
+//                .collect(Collectors.toSet())
+//        );
         return idSet;
     }
 
@@ -217,9 +162,9 @@ public class SetService {
             return;
         }
 
-        elementService.createElement(
-            new CreateElementRequest(idSet, idObject)
-        );
+//        elementService.createElement(
+//            new CreateElementRequest(idSet, idObject)
+//        );
     }
 
     /**
@@ -228,7 +173,7 @@ public class SetService {
      * @return The id of the created Object
      */
     public long createAndAddObject(long idSet) {
-        long idObject = objectService.createObject();
+        long idObject = elementService.createNode();
         addObjectToSet(idSet, idObject);
         return idObject;
     }

@@ -14,11 +14,11 @@ public class Clients {
         .registerTypeAdapter(OrderedSet.class, new OrderedSetTypeAdapter())
         .create();
 
-    public static <T extends MathClient> T getClient(Class<T> clientClass, String baseUrl) {
+    public static <T extends MathClient> T getClient(Class<T> clientClass, ClientConfiguration configuration) {
         return Feign
             .builder()
             .decoder(new GsonDecoder(GSON))
             .encoder(new GsonEncoder(GSON))
-            .target(clientClass, baseUrl);
+            .target(clientClass, configuration.getBaseUrl());
     }
 }

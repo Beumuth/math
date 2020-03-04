@@ -1,12 +1,13 @@
 package com.beumuth.math.core.jgraph.element;
 
+import com.beumuth.math.client.Clients;
 import com.beumuth.math.client.jgraph.CreateElementRequest;
 import com.beumuth.math.client.jgraph.Element;
 import com.beumuth.math.client.jgraph.ElementClient;
 import com.beumuth.math.client.jgraph.UpdateElementRequest;
 import com.beumuth.math.client.settheory.orderedset.OrderedSet;
 import com.beumuth.math.client.settheory.orderedset.OrderedSets;
-import com.beumuth.math.core.internal.client.ClientService;
+import com.beumuth.math.core.internal.client.ClientConfigurations;
 import com.beumuth.math.core.settheory.tuple.Tuples;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -40,8 +41,6 @@ public class ElementTests {
     private ElementService elementService;
     @Autowired
     private MockElementService mockElementService;
-    @Autowired
-    private ClientService clientService;
 
     private static ElementClient elementClient;
 
@@ -50,7 +49,7 @@ public class ElementTests {
     
     @PostConstruct
     public void postConstruct() {
-        elementClient = clientService.getClient(ElementClient.class);
+        elementClient = Clients.getClient(ElementClient.class, ClientConfigurations.LOCAL);
     }
 
     @Before

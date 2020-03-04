@@ -1,10 +1,11 @@
 package com.beumuth.math.core.settheory.orderedpair;
 
+import com.beumuth.math.client.Clients;
 import com.beumuth.math.client.settheory.orderedpair.CrupdateOrderedPairRequest;
 import com.beumuth.math.client.settheory.orderedpair.OrderedPair;
 import com.beumuth.math.client.settheory.orderedpair.OrderedPairClient;
 import com.beumuth.math.core.external.feign.FeignAssertions;
-import com.beumuth.math.core.internal.client.ClientService;
+import com.beumuth.math.core.internal.client.ClientConfigurations;
 import com.beumuth.math.core.settheory.object.MockObjectService;
 import com.beumuth.math.core.settheory.object.ObjectService;
 import feign.FeignException;
@@ -30,14 +31,12 @@ public class OrderedPairTests {
     private ObjectService objectService;
     @Autowired
     private MockObjectService mockObjectService;
-    @Autowired
-    private ClientService clientService;
 
     private OrderedPairClient orderedPairClient;
 
     @Before
     public void setupTests() {
-        orderedPairClient = clientService.getClient(OrderedPairClient.class);
+        orderedPairClient = Clients.getClient(OrderedPairClient.class, ClientConfigurations.LOCAL);
     }
 
     @Test

@@ -26,10 +26,6 @@ public class DatabaseConfigurationValidator implements Validator<DatabaseConfigu
         if(instance.database == null || instance.database.isEmpty()) {
             return new InvalidResult("database must be set");
         }
-        if(instance.integrationTestDatabase == null || instance.integrationTestDatabase.isEmpty()) {
-            return new InvalidResult("integrationTestDatabase must be set");
-        }
-
-        return new ValidResult();
+        return ValidResult.INSTANCE;
     }
 }

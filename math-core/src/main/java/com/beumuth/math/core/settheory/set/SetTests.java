@@ -1,9 +1,10 @@
 package com.beumuth.math.core.settheory.set;
 
+import com.beumuth.math.client.Clients;
 import com.beumuth.math.client.settheory.set.SetClient;
-import com.beumuth.math.core.internal.client.ClientService;
-import com.beumuth.math.core.settheory.object.ObjectService;
+import com.beumuth.math.core.internal.client.ClientConfigurations;
 import com.beumuth.math.core.settheory.element.ElementService;
+import com.beumuth.math.core.settheory.object.ObjectService;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import feign.FeignException;
@@ -29,14 +30,12 @@ public class SetTests {
     private ElementService elementService;
     @Autowired
     private ObjectService objectService;
-    @Autowired
-    private ClientService clientService;
 
     private SetClient setClient;
 
     @Before
     public void setupTests() {
-        setClient = clientService.getClient(SetClient.class);
+        setClient = Clients.getClient(SetClient.class, ClientConfigurations.LOCAL);
     }
 
     @Test

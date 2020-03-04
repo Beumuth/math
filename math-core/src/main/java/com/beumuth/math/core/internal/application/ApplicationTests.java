@@ -1,15 +1,19 @@
 package com.beumuth.math.core.internal.application;
 
 
+import com.beumuth.math.client.Clients;
 import com.beumuth.math.client.internal.application.ApplicationClient;
 import com.beumuth.math.client.internal.application.ApplicationConfiguration;
 import com.beumuth.math.client.internal.application.ApplicationMode;
 import com.beumuth.math.client.internal.environment.EnvironmentConfiguration;
-import com.beumuth.math.core.internal.client.ClientService;
+import com.beumuth.math.core.internal.client.ClientConfigurations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import feign.FeignException;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,15 +32,12 @@ public class ApplicationTests {
     private static ApplicationClient client;
 
     @Autowired
-    private ClientService clientService;
-
-    @Autowired
     private ApplicationService applicationService;
 
     @Before
     public void setupTests() {
         if(! initialized) {
-            client = clientService.getClient(ApplicationClient.class);
+            client = Clients.getClient(ApplicationClient.class, ClientConfigurations.LOCAL);
             startingConfiguration = applicationService.getApplicationConfiguration();
 
             //Set total tests - credit https://stackoverflow.com/a/48981027/3816779
